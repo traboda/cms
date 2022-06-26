@@ -133,9 +133,22 @@ class BunkRequestHandler:
         return ConversationHandler.END
 
     def cancel_bunk(self, update: Update, context: CallbackContext) -> int:
+
+        if update.message.text == "/cancelScoot":
+            context.user_data['type'] = "SCOOT"
+        elif update.message.text == "/cancelBunk":
+            context.user_data['type'] = "BUNK"
+        else:
+            context.user_data['type'] = "LEAVE"
+
         from attendance.models import LeaveRequest
-        LeaveRequest.objects.filter(member__telegramID=update.message.from_user.id, date=timezone.now().date()).delete()
-        update.message.reply_text('That is better. See you at the lab!', reply_markup=ReplyKeyboardRemove())
+        if LeaveRequest.objects.filter(member__telegramID=update.message.from_user.id, date=timezone.now().date()).exists():
+            leave = LeaveRequest.objects.get(member__telegramID=update.message.from_user.id, date=timezone.now().date())
+            leave.delete()
+            update.message.reply_text('That is better. See you at the lab!', reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
+
+        update.message.reply_text("You have not applied for any")
         return ConversationHandler.END
 
     def get_bunk_handler(self):
