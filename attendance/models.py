@@ -52,6 +52,7 @@ class LeaveRequest(models.Model):
     category = models.CharField(max_length=25)
     description = models.TextField()
     date = models.DateField()
+    type = models.CharField(max_length=25, default='BUNK')
     timestamp = models.DateTimeField(default=timezone.now)
 
     class Meta:

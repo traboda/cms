@@ -11,6 +11,7 @@ from telegram.ext import (
 )
 
 BUNK_CAT, BUNK_EXP, BUNK_CANCEL = map(chr, range(3))
+SCOOT_CAT, SCOOT_CANCEL = map(chr, range(2))
 
 
 class BunkRequestHandler:
@@ -24,20 +25,55 @@ class BunkRequestHandler:
             update.message.reply_text('I could not recognize you. My boss insists I dont talk to strangers.')
             return ConversationHandler.END
 
+        group = user.group
+
+        if not group:
+            update.message.reply_text('You dont belong to any  groups. You dont need leaves :) ')
+            return ConversationHandler.END
+
+        if not group.is_working_today():
+            update.message.reply_text('Today is anyway a holiday. Chill')
+            return ConversationHandler.END
+
+        if update.message.text == "/scoot":
+            if not group.is_scootable():
+                update.message.reply_text("You cannot scoot now")
+                return ConversationHandler.END
+            context.user_data['type'] = "SCOOT"
+        elif update.message.text == "/bunk":
+            if not group.is_bunkable():
+                update.message.reply_text("You cannot bunk now")
+                return ConversationHandler.END
+            context.user_data['type'] = "BUNK"
+        else:
+            if not group.can_take_leave():
+                update.message.reply_text("You cannot request a leave now. Try bunking or scooting!!")
+                return ConversationHandler.END
+            context.user_data['type'] = "LEAVE"
+
         from attendance.models import LeaveRequest
-        today = timezone.now().date().isoformat()
+
         if LeaveRequest.objects.filter(member=user, date=timezone.now().date()).exists():
+            leave = LeaveRequest.objects.get(member=user, date=timezone.now().date())
+
+            if context.user_data['type'] == "BUNK" and group.is_double_bunk():
+                leave.type = "DOUBLE_BUNK"
+            elif context.user_data['type'] == "SCOOT" and group.is_double_scoot():
+                leave.type = "DOUBLE_SCOOT"
+
+            leave.save()
+
             update.message.reply_text(
                 "You already told me you are not coming today. I got it. Don't worry :)"
             )
+
             return ConversationHandler.END
 
         reply_keyboard = [
-          ['I am a Student! 👨‍🎓',],
-          ['Getting Old 🤒',],
-          ['🎉 Pawri 💥 Ho Rahi 🎊 Hai ⚡️',],
-          ['Eyes are Red! 🥱😴'],
-          ['NVM. Just kidding.']
+            ['I am a Student! 👨‍🎓', ],
+            ['Getting Old 🤒', ],
+            ['🎉 Pawri 💥 Ho Rahi 🎊 Hai ⚡️', ],
+            ['Eyes are Red! 🥱😴'],
         ]
         update.message.reply_text(
             text="Oh well, so you don't want to come to lab today...",
@@ -65,8 +101,7 @@ class BunkRequestHandler:
             cat = 'SLEEP'
             m1 = "Sleep is very important. You cannot work now, I understand."
             m2 = "I had told you to sleep properly... What went wrong yesterday?"
-        else:
-            return BUNK_CANCEL
+
         update.message.reply_text(m1, quote=True)
         update.message.reply_text(m2)
         context.user_data['category'] = cat
@@ -87,28 +122,71 @@ class BunkRequestHandler:
         update.message.reply_text(msg, reply_markup=ReplyKeyboardRemove())
 
         from attendance.models import LeaveRequest
+        print(update.message)
         LeaveRequest.objects.create(
             member=context.user_data['user'],
             date=timezone.now().date(),
+            type=context.user_data['type'],
             category=context.user_data['category'],
             description=context.user_data['description'],
         )
         return ConversationHandler.END
 
     def cancel_bunk(self, update: Update, context: CallbackContext) -> int:
+        from attendance.models import LeaveRequest
+        LeaveRequest.objects.filter(member__telegramID=update.message.from_user.id, date=timezone.now().date()).delete()
         update.message.reply_text('That is better. See you at the lab!', reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
 
     def get_bunk_handler(self):
         return ConversationHandler(
-            entry_points=[CommandHandler('bunk', self.request_bunk)],
+            entry_points=[
+                CommandHandler('bunk', self.request_bunk),
+                CommandHandler('cancelBunk', self.cancel_bunk)
+            ],
             states={
                 BUNK_CAT: [
                     MessageHandler(Filters.text, self.explain_bunk)
                 ],
                 BUNK_EXP: [MessageHandler(Filters.text, self.log_bunk)],
                 BUNK_CANCEL: [
-                    CommandHandler('cancel', self.cancel_bunk)
+                    MessageHandler(Filters.text, self.cancel_bunk)
+                ]
+            },
+            fallbacks=[CommandHandler('cancel', self.cancel_bunk)],
+        )
+
+    def get_scoot_handler(self):
+        return ConversationHandler(
+            entry_points=[
+                CommandHandler('scoot', self.request_bunk),
+                CommandHandler('cancelScoot', self.cancel_bunk),
+            ],
+            states={
+                BUNK_CAT: [
+                    MessageHandler(Filters.text, self.explain_bunk)
+                ],
+                BUNK_EXP: [MessageHandler(Filters.text, self.log_bunk)],
+                BUNK_CANCEL: [
+                    MessageHandler(Filters.text, self.cancel_bunk)
+                ]
+            },
+            fallbacks=[CommandHandler('cancel', self.cancel_bunk)],
+        )
+
+    def get_leave_handler(self):
+        return ConversationHandler(
+            entry_points=[
+                CommandHandler('leave', self.request_bunk),
+                CommandHandler('cancelLeave', self.cancel_bunk),
+            ],
+            states={
+                BUNK_CAT: [
+                    MessageHandler(Filters.text, self.explain_bunk)
+                ],
+                BUNK_EXP: [MessageHandler(Filters.text, self.log_bunk)],
+                BUNK_CANCEL: [
+                    MessageHandler(Filters.text, self.cancel_bunk)
                 ]
             },
             fallbacks=[CommandHandler('cancel', self.cancel_bunk)],
@@ -183,8 +261,18 @@ class ChowkidarBot(BunkRequestHandler, GroupInlineQuery):
             )
             return ConversationHandler.END
 
-    def scoot(self, update: Update, context: CallbackContext):
-        update.message.reply_text("You are not a scoot")
+    # def scoot(self, update: Update, context: CallbackContext):
+    #     print(update.__dict__)
+    #     update.message.reply_text("Ok bie!! scoot")
+
+    def tata(self, update: Update, context: CallbackContext):
+        # add everything to daily and delete log
+        if update.effective_chat.type == update.effective_chat.PRIVATE:
+            update.message.reply_text("Your status update")
+
+        else:
+            update.message.reply_text("Please DM me", quote=True)
+        print(update.effective_chat.type)
 
     def start_bot(self):
         updater = Updater(settings.TELEGRAM_BOT_TOKEN)
@@ -192,7 +280,10 @@ class ChowkidarBot(BunkRequestHandler, GroupInlineQuery):
         dispatcher = updater.dispatcher
         dispatcher.add_handler(CommandHandler("start", self.start))
         dispatcher.add_handler(self.get_bunk_handler())
-        dispatcher.add_handler(CommandHandler("scoot", self.scoot))
+        dispatcher.add_handler(self.get_scoot_handler())
+        dispatcher.add_handler(self.get_leave_handler())
+        dispatcher.add_handler(CommandHandler("tata", self.tata))
+        dispatcher.add_handler(CommandHandler("bye", self.tata))
         dispatcher.add_handler(InlineQueryHandler(self.inline_query))
 
         updater.start_polling()
