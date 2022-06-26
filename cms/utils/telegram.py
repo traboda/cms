@@ -151,45 +151,13 @@ class BunkRequestHandler:
         update.message.reply_text("You have not applied for any")
         return ConversationHandler.END
 
-    def get_bunk_handler(self):
+    def absent_handler(self):
         return ConversationHandler(
             entry_points=[
                 CommandHandler('bunk', self.request_bunk),
-                CommandHandler('cancelBunk', self.cancel_bunk)
-            ],
-            states={
-                BUNK_CAT: [
-                    MessageHandler(Filters.text, self.explain_bunk)
-                ],
-                BUNK_EXP: [MessageHandler(Filters.text, self.log_bunk)],
-                BUNK_CANCEL: [
-                    MessageHandler(Filters.text, self.cancel_bunk)
-                ]
-            },
-            fallbacks=[CommandHandler('cancel', self.cancel_bunk)],
-        )
-
-    def get_scoot_handler(self):
-        return ConversationHandler(
-            entry_points=[
+                CommandHandler('cancelBunk', self.cancel_bunk),
                 CommandHandler('scoot', self.request_bunk),
                 CommandHandler('cancelScoot', self.cancel_bunk),
-            ],
-            states={
-                BUNK_CAT: [
-                    MessageHandler(Filters.text, self.explain_bunk)
-                ],
-                BUNK_EXP: [MessageHandler(Filters.text, self.log_bunk)],
-                BUNK_CANCEL: [
-                    MessageHandler(Filters.text, self.cancel_bunk)
-                ]
-            },
-            fallbacks=[CommandHandler('cancel', self.cancel_bunk)],
-        )
-
-    def get_leave_handler(self):
-        return ConversationHandler(
-            entry_points=[
                 CommandHandler('leave', self.request_bunk),
                 CommandHandler('cancelLeave', self.cancel_bunk),
             ],
@@ -204,7 +172,6 @@ class BunkRequestHandler:
             },
             fallbacks=[CommandHandler('cancel', self.cancel_bunk)],
         )
-
 
 class GroupInlineQuery:
 
@@ -292,9 +259,7 @@ class ChowkidarBot(BunkRequestHandler, GroupInlineQuery):
 
         dispatcher = updater.dispatcher
         dispatcher.add_handler(CommandHandler("start", self.start))
-        dispatcher.add_handler(self.get_bunk_handler())
-        dispatcher.add_handler(self.get_scoot_handler())
-        dispatcher.add_handler(self.get_leave_handler())
+        dispatcher.add_handler(self.absent_handler())
         dispatcher.add_handler(CommandHandler("tata", self.tata))
         dispatcher.add_handler(CommandHandler("bye", self.tata))
         dispatcher.add_handler(InlineQueryHandler(self.inline_query))
