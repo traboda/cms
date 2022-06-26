@@ -5,11 +5,11 @@ from huey.contrib.djhuey import db_periodic_task
 from attendance.utils.asus import AsusRouter
 from attendance.utils.bluetooth import get_bluetooth_address
 
+
 @db_periodic_task(crontab(minute='*'))
 def log_wifi_attendance():
     asus = AsusRouter()
     clients = asus.get_online_clients()
-
     from attendance.models import AttendanceLog, AttendanceDevice
     for client in clients:
         try:

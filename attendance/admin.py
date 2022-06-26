@@ -5,8 +5,8 @@ from .models import AttendanceDevice, AttendanceLog, LeaveRequest
 
 @admin.register(AttendanceLog)
 class MemberAdmin(admin.ModelAdmin):
-    list_display = ['member', 'device', 'timestamp']
-    list_filter = ['timestamp']
+    list_display = ['member', 'type', 'device', 'timestamp']
+    list_filter = ['type', 'timestamp']
 
 
 @admin.register(AttendanceDevice)
