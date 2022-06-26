@@ -2,19 +2,18 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.utils import timezone
-from telegram import ReplyKeyboardRemove, Update, ReplyKeyboardMarkup, InlineQueryResultArticle, InputTextMessageContent
+from telegram import ReplyKeyboardRemove, Update, ReplyKeyboardMarkup
 from telegram.ext import (
     Updater,
     CommandHandler,
     ConversationHandler,
-    CallbackContext, MessageHandler, Filters, InlineQueryHandler,
+    CallbackContext, MessageHandler, Filters,
 )
 
 BUNK_CAT, BUNK_EXP, BUNK_CANCEL = map(chr, range(3))
-SCOOT_CAT, SCOOT_CANCEL = map(chr, range(2))
 
 
-class BunkRequestHandler:
+class LeaveRequestHandler:
 
     def request_bunk(self, update: Update, context: CallbackContext):
         from membership.models import Member
@@ -122,7 +121,6 @@ class BunkRequestHandler:
         update.message.reply_text(msg, reply_markup=ReplyKeyboardRemove())
 
         from attendance.models import LeaveRequest
-        print(update.message)
         LeaveRequest.objects.create(
             member=context.user_data['user'],
             date=timezone.now().date(),
@@ -151,7 +149,7 @@ class BunkRequestHandler:
         update.message.reply_text("You have not applied for any")
         return ConversationHandler.END
 
-    def absent_handler(self):
+    def get_leave_request_handler(self):
         return ConversationHandler(
             entry_points=[
                 CommandHandler('bunk', self.request_bunk),
@@ -173,61 +171,8 @@ class BunkRequestHandler:
             fallbacks=[CommandHandler('cancel', self.cancel_bunk)],
         )
 
-class GroupInlineQuery:
 
-    def who_is_in_lab(self):
-        from attendance.models import WiFiAttendanceLog
-        logs = WiFiAttendanceLog.objects.filter(
-            timestamp__gt=timezone.now() - timezone.timedelta(minutes=3),
-        ).distinct('member')
-
-        if len(logs) == 0:
-            return """
-                **whoIsInLab**
-                
-                No one is in the lab right now.
-            """
-        msg = """
-        **whoIsInLab**
-        Alright, I can see the following people in lab \-
-        """
-        index = 0
-        todayStart = timezone.now() - timezone.timedelta(hours=24)
-        for l in logs:
-            index += 1
-            msg += f'{index}\. {l.member.name} \- {l.member.wifiattendancelog_set.filter(timestamp__gt=todayStart).count()} mins\n'
-        return msg
-
-    def inline_query(self, update: Update, context: CallbackContext):
-        query = update.inline_query.query
-        print(query)
-
-        if not query or query == "":
-            return
-
-        results = [
-            InlineQueryResultArticle(
-                id=str(uuid4()),
-                title="whoBunked",
-                input_message_content=InputTextMessageContent(
-                    self.who_is_in_lab(),
-                    parse_mode='MarkdownV2'
-                ),
-            ),
-            InlineQueryResultArticle(
-                id=str(uuid4()),
-                title="whoIsInLab",
-                input_message_content=InputTextMessageContent(
-                    self.who_is_in_lab(),
-                    parse_mode='MarkdownV2'
-                ),
-            )
-        ]
-
-        update.inline_query.answer(results)
-
-
-class ChowkidarBot(BunkRequestHandler, GroupInlineQuery):
+class ChowkidarBot(LeaveRequestHandler):
 
     def start(self, update: Update, context: CallbackContext):
         print(update.message.from_user.id)
@@ -240,10 +185,6 @@ class ChowkidarBot(BunkRequestHandler, GroupInlineQuery):
                 f"I could not recognize you. Please ask our admin to add you (id: {update.message.from_user.id}) to the system."
             )
             return ConversationHandler.END
-
-    # def scoot(self, update: Update, context: CallbackContext):
-    #     print(update.__dict__)
-    #     update.message.reply_text("Ok bie!! scoot")
 
     def tata(self, update: Update, context: CallbackContext):
         # add everything to daily and delete log
@@ -259,10 +200,9 @@ class ChowkidarBot(BunkRequestHandler, GroupInlineQuery):
 
         dispatcher = updater.dispatcher
         dispatcher.add_handler(CommandHandler("start", self.start))
-        dispatcher.add_handler(self.absent_handler())
+        dispatcher.add_handler(self.get_leave_request_handler())
         dispatcher.add_handler(CommandHandler("tata", self.tata))
         dispatcher.add_handler(CommandHandler("bye", self.tata))
-        dispatcher.add_handler(InlineQueryHandler(self.inline_query))
 
         updater.start_polling()
 
