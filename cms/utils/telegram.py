@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import strawberry
 from django.conf import settings
 from django.utils import timezone
 from telegram import ReplyKeyboardRemove, Update, ReplyKeyboardMarkup
@@ -27,7 +28,7 @@ class LeaveRequestHandler:
         group = user.group
 
         if not group:
-            update.message.reply_text('You dont belong to any  groups. You dont need leaves :) ')
+            update.message.reply_text("You dont belong to any  groups. You don't need leaves :) ")
             return ConversationHandler.END
 
         if not group.is_working_today():
@@ -172,7 +173,52 @@ class LeaveRequestHandler:
         )
 
 
-class ChowkidarBot(LeaveRequestHandler):
+class LeaveRequestAppliedLister:
+
+    def get_member(self, update, context):
+        from membership.models import Member
+        try:
+            user = Member.objects.get(telegramID=update.message.from_user.id)
+            context.user_data['user'] = user
+            return user
+        except Member.DoesNotExist:
+            update.message.reply_text("I could not recognize you. My boss insists I don't talk to strangers.")
+            return ConversationHandler.END
+
+    def does_anyone_apply_for_leave(self, update, type_of_leave):
+        from attendance.models import LeaveRequest
+        if not LeaveRequest.objects.filter(date=timezone.now().date(), type=str(type_of_leave.upper())).exists():
+            update.message.reply_text(f"No one has applied for any {type_of_leave} today. ;)")
+            return False
+        return True
+
+    def list_requests(self, update: Update, context: CallbackContext):
+        user = self.get_member(update, context)
+        type_of_leave = update.message.text.split('_')[0][1:]
+        from attendance.models import LeaveRequest
+
+        if self.does_anyone_apply_for_leave(update, type_of_leave):
+            output_str = f"Here are the {type_of_leave} requests for today:\n"
+            index = 1
+            for leave_request in LeaveRequest.objects.filter(date=timezone.now().date(), type=type_of_leave.upper()):
+                output_str += f"  {index}. {leave_request.member.name}\n"
+            update.message.reply_text(output_str)
+
+        return ConversationHandler.END
+
+    def show_leave_requests_handler(self):
+        return ConversationHandler(
+            entry_points=[
+                CommandHandler('leave_requests', self.list_requests),
+                CommandHandler('bunk_requests', self.list_requests),
+                CommandHandler('scoot_requests', self.list_requests),
+            ],
+            states={},
+            fallbacks=[CommandHandler('cancel', ConversationHandler.END)],
+        )
+
+
+class ChowkidarBot(LeaveRequestHandler, LeaveRequestAppliedLister):
 
     def start(self, update: Update, context: CallbackContext):
         print(update.message.from_user.id)
@@ -201,8 +247,8 @@ class ChowkidarBot(LeaveRequestHandler):
         dispatcher = updater.dispatcher
         dispatcher.add_handler(CommandHandler("start", self.start))
         dispatcher.add_handler(self.get_leave_request_handler())
+        dispatcher.add_handler(self.show_leave_requests_handler())
         dispatcher.add_handler(CommandHandler("tata", self.tata))
-        dispatcher.add_handler(CommandHandler("bye", self.tata))
 
         updater.start_polling()
 
