@@ -7,10 +7,9 @@ from telegram.ext import (
 )
 
 BUNK_CAT, BUNK_EXP, BUNK_CANCEL = map(chr, range(3))
-SCOOT_CAT, SCOOT_CANCEL = map(chr, range(2))
 
 
-class BunkRequestHandler:
+class LeaveRequestHandler:
 
     def request_bunk(self, update: Update, context: CallbackContext):
         from membership.models import Member
@@ -24,7 +23,7 @@ class BunkRequestHandler:
         group = user.group
 
         if not group:
-            update.message.reply_text('You dont belong to any  groups. You dont need leaves :) ')
+            update.message.reply_text("You dont belong to any  groups. You don't need leaves :) ")
             return ConversationHandler.END
 
         if not group.is_working_today():
@@ -146,45 +145,13 @@ class BunkRequestHandler:
         update.message.reply_text("You have not applied for any")
         return ConversationHandler.END
 
-    def get_bunk_handler(self):
+    def get_leave_request_handler(self):
         return ConversationHandler(
             entry_points=[
                 CommandHandler('bunk', self.request_bunk),
-                CommandHandler('cancelBunk', self.cancel_bunk)
-            ],
-            states={
-                BUNK_CAT: [
-                    MessageHandler(Filters.text, self.explain_bunk)
-                ],
-                BUNK_EXP: [MessageHandler(Filters.text, self.log_bunk)],
-                BUNK_CANCEL: [
-                    MessageHandler(Filters.text, self.cancel_bunk)
-                ]
-            },
-            fallbacks=[CommandHandler('cancel', self.cancel_bunk)],
-        )
-
-    def get_scoot_handler(self):
-        return ConversationHandler(
-            entry_points=[
+                CommandHandler('cancelBunk', self.cancel_bunk),
                 CommandHandler('scoot', self.request_bunk),
                 CommandHandler('cancelScoot', self.cancel_bunk),
-            ],
-            states={
-                BUNK_CAT: [
-                    MessageHandler(Filters.text, self.explain_bunk)
-                ],
-                BUNK_EXP: [MessageHandler(Filters.text, self.log_bunk)],
-                BUNK_CANCEL: [
-                    MessageHandler(Filters.text, self.cancel_bunk)
-                ]
-            },
-            fallbacks=[CommandHandler('cancel', self.cancel_bunk)],
-        )
-
-    def get_leave_handler(self):
-        return ConversationHandler(
-            entry_points=[
                 CommandHandler('leave', self.request_bunk),
                 CommandHandler('cancelLeave', self.cancel_bunk),
             ],

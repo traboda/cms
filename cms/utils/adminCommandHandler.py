@@ -13,9 +13,14 @@ USER_NAME, USER_ID, USER_GROUP, USER_CANCEL = map(chr, range(4))
 GROUP_NAME, GROUP_WST, GROUP_WCT, GROUP_HST, GROUP_HCT = map(chr, range(5))
 
 
-def getTimeFromFormat(time):
+def getTimeFromFormat(update: Update, time):
     from datetime import datetime
-    return datetime.strptime(time, '%H:%M').time()
+    try:
+        return datetime.strptime(time, '%H:%M').time()
+    except ValueError:
+        update.message.reply_text("Invalid time format")
+        return False
+
 
 class AdminCommandHandler:
 
@@ -92,33 +97,52 @@ class AdminCommandHandler:
 
     def group_wst(self, update: Update, context: CallbackContext):
         answer = update.message.text
-        context.user_data['wst'] = answer
+
+        if not getTimeFromFormat(update=update, time=answer):
+            return ConversationHandler.END
+
+        context.user_data['wct'] = getTimeFromFormat(update=update, time=answer)
+
         update.message.reply_text("Ok so when is the closing time for this group during working days? \n Format: HH:MM")
         return GROUP_WCT
 
     def group_wct(self, update: Update, context: CallbackContext):
         answer = update.message.text
-        context.user_data['wct'] = answer
+
+        if not getTimeFromFormat(update=update, time=answer):
+            return ConversationHandler.END
+
+        context.user_data['wct'] = getTimeFromFormat(update=update, time=answer)
+
         update.message.reply_text("Ok so when is the opening time for this group during holidays? \n Format: HH:MM")
         return GROUP_HST
 
     def group_hst(self, update: Update, context: CallbackContext):
         answer = update.message.text
-        context.user_data['hst'] = answer
+
+        if not getTimeFromFormat(update=update, time=answer):
+            return ConversationHandler.END
+
+        context.user_data['hst'] = getTimeFromFormat(update=update, time=answer)
+
         update.message.reply_text("Ok so when is the closing time for this group during holidays? \n Format: HH:MM")
         return GROUP_HCT
 
     def group_hct(self, update: Update, context: CallbackContext):
         answer = update.message.text
-        context.user_data['hct'] = answer
+
+        if not getTimeFromFormat(update=update, time=answer):
+            return ConversationHandler.END
+
+        context.user_data['hct'] = getTimeFromFormat(update=update, time=answer)
 
         from membership.models import Group
         Group.objects.create(
             name=context.user_data['name'],
-            workingDayOpenTime=getTimeFromFormat(context.user_data['wst']),
-            workingDayCloseTime=getTimeFromFormat(context.user_data['wct']),
-            holidayOpenTime=getTimeFromFormat(context.user_data['hst']),
-            holidayCloseTime=getTimeFromFormat(context.user_data['hct']),
+            workingDayOpenTime=context.user_data['wst'],
+            workingDayCloseTime=context.user_data['wct'],
+            holidayOpenTime=context.user_data['hst'],
+            holidayCloseTime=context.user_data['hct'],
         )
         update.message.reply_text("Group created successfully", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
