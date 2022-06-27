@@ -63,7 +63,6 @@ class Group(models.Model):
         start, end = self.get_today_schedule()
         now = self.now
         # Always can bunk before start of the day for first session
-        print(now.hour, start.hour)
         if now.hour < start.hour:
             return True
         # can also bunk afternoon for holidays
