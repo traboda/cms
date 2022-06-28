@@ -11,7 +11,7 @@ from telegram.ext import (
 
 USER_NAME, USER_ID, USER_GROUP, USER_CANCEL = map(chr, range(4))
 GROUP_NAME, GROUP_WST, GROUP_WCT, GROUP_HST, GROUP_HCT = map(chr, range(5))
-
+DEVICE_NAME, DEVICE_MAC, DEVICE_BLUETOOTH, DEVICE_USER_TID = map(chr, range(4))
 
 def getTimeFromFormat(update: Update, time):
     from datetime import datetime
@@ -75,6 +75,8 @@ class AdminCommandHandler:
         update.message.reply_text("User added successfully", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
 
+
+
     def add_group(self, update: Update, context: CallbackContext):
         if (update.effective_chat.type == update.effective_chat.PRIVATE and
                 str(update.message.from_user.id) == settings.ADMIN_ID):
@@ -101,7 +103,7 @@ class AdminCommandHandler:
         if not getTimeFromFormat(update=update, time=answer):
             return ConversationHandler.END
 
-        context.user_data['wct'] = getTimeFromFormat(update=update, time=answer)
+        context.user_data['wst'] = getTimeFromFormat(update=update, time=answer)
 
         update.message.reply_text("Ok so when is the closing time for this group during working days? \n Format: HH:MM")
         return GROUP_WCT
@@ -147,30 +149,71 @@ class AdminCommandHandler:
         update.message.reply_text("Group created successfully", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
 
+
+
+    def add_device(self, update: Update, context: CallbackContext):
+        if (update.effective_chat.type == update.effective_chat.PRIVATE and
+                str(update.message.from_user.id) == settings.ADMIN_ID):
+            update.message.reply_text(text="Ok so what is the device name?")
+            return DEVICE_NAME
+        else:
+            update.message.reply_text("Action is restricted to admin only")
+            return ConversationHandler.END
+
+    def device_name(self, update: Update, context: CallbackContext):
+        answer = update.message.text
+        context.user_data['name'] = answer
+        update.message.reply_text("Ok now enter the users telegram ID?")
+        return DEVICE_USER_TID
+
+    def device_user_tid(self, update: Update, context: CallbackContext):
+        answer = update.message.text
+
+        from membership.models import Member
+        if Member.objects.filter(telegramID=answer).exists():
+            context.user_data['user'] = Member.objects.get(telegramID=answer).id
+            update.message.reply_text("User found, now enter the device MAC?")
+
+        else:
+            update.message.reply_text("User not found")
+            return ConversationHandler.END
+
+        return DEVICE_MAC
+
+    def device_mac(self, update: Update, context: CallbackContext):
+        answer = update.message.text
+        context.user_data['mac'] = answer
+        update.message.reply_text("Ok now enter the device bluetooth address?")
+        return DEVICE_BLUETOOTH
+
+    def device_bluetooth(self, update: Update, context: CallbackContext):
+        answer = update.message.text
+        context.user_data['bluetooth'] = answer
+
+        from attendance.models import AttendanceDevice
+        AttendanceDevice.objects.create(
+            name=context.user_data['name'],
+            member_id=context.user_data['user'],
+            macAddress=context.user_data['mac'],
+            bluetoothAddress=context.user_data['bluetooth'],
+        )
+
+        update.message.reply_text("Device added successfully", reply_markup=ReplyKeyboardRemove())
+
+        return ConversationHandler.END
+
+
+
     def cancel_interaction(self, update: Update, context: CallbackContext) -> int:
         update.message.reply_text(text="Interaction cancelled", reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
 
-    def get_admin_commmand_handler(self):
+    def admin_add_group_handler(self):
         return ConversationHandler(
             entry_points=[
-                CommandHandler('add_user', self.add_user),
                 CommandHandler('add_group', self.add_group),
-                CommandHandler('add_day_exception', self.add_user),
             ],
             states={
-                USER_NAME: [
-                    MessageHandler(Filters.text, self.user_name)
-                ],
-                USER_ID: [
-                    MessageHandler(Filters.text, self.user_id)
-                ],
-                USER_GROUP: [
-                    MessageHandler(Filters.text, self.user_group)
-                ],
-                USER_CANCEL: [
-                    MessageHandler(Filters.text, self.cancel_interaction)
-                ],
                 GROUP_NAME: [
                     MessageHandler(Filters.text, self.group_name)
                 ],
@@ -185,6 +228,51 @@ class AdminCommandHandler:
                 ],
                 GROUP_HCT: [
                     MessageHandler(Filters.text, self.group_hct)
+                ],
+            },
+            fallbacks=[CommandHandler('cancel', self.cancel_interaction)],
+        )
+
+    def admin_add_user_handler(self):
+        return ConversationHandler(
+            entry_points=[
+                CommandHandler('add_user', self.add_user),
+                # CommandHandler('add_day_exception', self.add_user),
+            ],
+            states={
+                USER_NAME: [
+                    MessageHandler(Filters.text, self.user_name)
+                ],
+                USER_ID: [
+                    MessageHandler(Filters.text, self.user_id)
+                ],
+                USER_GROUP: [
+                    MessageHandler(Filters.text, self.user_group)
+                ],
+                USER_CANCEL: [
+                    MessageHandler(Filters.text, self.cancel_interaction)
+                ],
+            },
+            fallbacks=[CommandHandler('cancel', self.cancel_interaction)],
+        )
+
+    def admin_add_device_handler(self):
+        return ConversationHandler(
+            entry_points=[
+                CommandHandler('add_device', self.add_device),
+            ],
+            states={
+                DEVICE_NAME: [
+                    MessageHandler(Filters.text, self.device_name)
+                ],
+                DEVICE_USER_TID: [
+                    MessageHandler(Filters.text, self.device_user_tid)
+                ],
+                DEVICE_MAC: [
+                    MessageHandler(Filters.text, self.device_mac)
+                ],
+                DEVICE_BLUETOOTH: [
+                    MessageHandler(Filters.text, self.device_bluetooth)
                 ],
             },
             fallbacks=[CommandHandler('cancel', self.cancel_interaction)],

@@ -38,7 +38,6 @@ class LeaveRequestAppliedLister:
         return True
 
     def list_requests(self, update: Update, context: CallbackContext):
-        user = self.get_member(update, context)
         type_of_leave = update.message.text.split('_')[0][1:]
         from attendance.models import LeaveRequest
 
@@ -51,12 +50,44 @@ class LeaveRequestAppliedLister:
 
         return ConversationHandler.END
 
+    def show_vanish(self, update: Update, context: CallbackContext):
+        from membership.models import Member
+        from attendance.models import LeaveRequest, AttendanceLog
+
+        lr = LeaveRequest.objects.filter(date=timezone.now().date())
+        mlr = []
+
+        for leave_request in lr:
+            mlr.append(leave_request.member.id)
+
+        aml = []
+
+        al = AttendanceLog.objects.filter(timestamp__day=timezone.now().day).distinct('member')
+        for attendance_log in al:
+            aml.append(attendance_log.member.id)
+
+        fml = Member.objects.exclude(id__in=mlr).exclude(id__in=aml).order_by('name')
+
+        if fml.exists():
+            output_str = f"Here are the people who vanished:\n"
+            index = 1
+            for member in fml:
+                output_str += f"  {index}. {member.name}\n"
+                index += 1
+
+            update.message.reply_text(output_str)
+        else:
+            update.message.reply_text("No one has applied for vanish today. ;))")
+
+        return ConversationHandler.END
+
     def show_leave_requests_handler(self):
         return ConversationHandler(
             entry_points=[
                 CommandHandler('leave_requests', self.list_requests),
                 CommandHandler('bunk_requests', self.list_requests),
                 CommandHandler('scoot_requests', self.list_requests),
+                CommandHandler('show_vanish', self.show_vanish),
             ],
             states={},
             fallbacks=[CommandHandler('cancel', ConversationHandler.END)],
@@ -67,11 +98,7 @@ class GroupInlineQuery:
 
     def who_is_in_lab(self):
         from attendance.models import AttendanceLog
-        logs = AttendanceLog.objects.filter(
-            timestamp__gt=timezone.now() - timezone.timedelta(minutes=3),
-            type='WIFI'
-        ).distinct('member')
-
+        logs = AttendanceLog.objects.filter(timestamp__gt=timezone.now() - timezone.timedelta(minutes=5),type='WIFI').distinct('member')
         if len(logs) == 0:
             return """
                 **whoIsInLab**
@@ -130,6 +157,10 @@ class ChowkidarBot(LeaveRequestHandler, LeaveRequestAppliedLister, AdminCommandH
             )
             return ConversationHandler.END
 
+    def who_is_in_lab_cmd(self, update: Update, context: CallbackContext):
+        update.message.reply_text(self.who_is_in_lab())
+        return ConversationHandler.END
+
     def tata(self, update: Update, context: CallbackContext):
         # add everything to daily and delete log
         if update.effective_chat.type == update.effective_chat.PRIVATE:
@@ -143,9 +174,12 @@ class ChowkidarBot(LeaveRequestHandler, LeaveRequestAppliedLister, AdminCommandH
 
         dispatcher = updater.dispatcher
         dispatcher.add_handler(CommandHandler("start", self.start))
-        dispatcher.add_handler(self.get_admin_commmand_handler())
+        dispatcher.add_handler(self.admin_add_group_handler())
+        dispatcher.add_handler(self.admin_add_user_handler())
+        dispatcher.add_handler(self.admin_add_device_handler())
         dispatcher.add_handler(self.get_leave_request_handler())
         dispatcher.add_handler(self.show_leave_requests_handler())
+        dispatcher.add_handler(CommandHandler("who_is_in_lab", self.who_is_in_lab_cmd))
         dispatcher.add_handler(CommandHandler("tata", self.tata))
         dispatcher.add_handler(InlineQueryHandler(self.inline_query))
 
