@@ -16,6 +16,7 @@ BUNK_CAT, BUNK_EXP, BUNK_CANCEL = map(chr, range(3))
 
 from .leaveRequestHandler import LeaveRequestHandler
 from .adminCommandHandler import AdminCommandHandler
+from .lastSeen import GiveStayBacks
 
 
 class LeaveRequestAppliedLister:
@@ -30,7 +31,7 @@ class LeaveRequestAppliedLister:
             update.message.reply_text("I could not recognize you. My boss insists I don't talk to strangers.")
             return ConversationHandler.END
 
-    def does_anyone_apply_for_leave(self, update, type_of_leave):
+    def did_anyone_apply_for_leave(self, update, type_of_leave):
         from attendance.models import LeaveRequest
         if not LeaveRequest.objects.filter(date=timezone.now().date(), type=str(type_of_leave.upper())).exists():
             update.message.reply_text(f"No one has applied for any {type_of_leave} today. ;)")
@@ -42,11 +43,12 @@ class LeaveRequestAppliedLister:
         type_of_leave = update.message.text.split('_')[0][1:]
         from attendance.models import LeaveRequest
 
-        if self.does_anyone_apply_for_leave(update, type_of_leave):
+        if self.did_anyone_apply_for_leave(update, type_of_leave):
             output_str = f"Here are the {type_of_leave} requests for today:\n"
             index = 1
             for leave_request in LeaveRequest.objects.filter(date=timezone.now().date(), type=type_of_leave.upper()):
                 output_str += f"  {index}. {leave_request.member.name}\n"
+                index += 1
             update.message.reply_text(output_str)
 
         return ConversationHandler.END
@@ -117,7 +119,7 @@ class GroupInlineQuery:
         update.inline_query.answer(results)
 
 
-class ChowkidarBot(LeaveRequestHandler, LeaveRequestAppliedLister, AdminCommandHandler, GroupInlineQuery):
+class ChowkidarBot(LeaveRequestHandler, LeaveRequestAppliedLister, AdminCommandHandler, GroupInlineQuery, GiveStayBacks):
 
     def start(self, update: Update, context: CallbackContext):
         from membership.models import Member
@@ -146,6 +148,7 @@ class ChowkidarBot(LeaveRequestHandler, LeaveRequestAppliedLister, AdminCommandH
         dispatcher.add_handler(self.get_admin_commmand_handler())
         dispatcher.add_handler(self.get_leave_request_handler())
         dispatcher.add_handler(self.show_leave_requests_handler())
+        dispatcher.add_handler(CommandHandler("show_last_seen", self.getLastSeen))
         dispatcher.add_handler(CommandHandler("tata", self.tata))
         dispatcher.add_handler(InlineQueryHandler(self.inline_query))
 
