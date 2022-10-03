@@ -27,6 +27,7 @@ class AttendanceLog(models.Model):
     def __str__(self):
         return str(self.id)
 
+
 __all__ = [
     'AttendanceLog',
 ]
