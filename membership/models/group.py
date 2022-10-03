@@ -1,27 +1,8 @@
+import pytz
 from django.db import models
 from django.utils import timezone
-import pytz
 
-
-class SpecialDate(models.Model):
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=255)
-    group = models.ForeignKey(
-        'membership.Group',
-        on_delete=models.CASCADE
-    )
-    date = models.DateField()
-    open = models.TimeField()
-    close = models.TimeField()
-    isClosed = models.BooleanField(default=False)
-
-    class Meta:
-        db_table = 'membership_specialdate'
-        verbose_name = 'Special Date'
-        verbose_name_plural = 'Special Dates'
-
-    def __str__(self):
-        return str(self.name)
+from membership.models.special_date import SpecialDate
 
 
 class Group(models.Model):
@@ -118,52 +99,4 @@ class Group(models.Model):
         return str(self.name)
 
 
-class Hostel(models.Model):
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=255)
-    wardenName = models.CharField(max_length=100)
-    wardenNumber = models.CharField(max_length=20)
-
-    class Meta:
-        db_table = 'hostel'
-        verbose_name_plural = "Hostels"
-        verbose_name = "Hostel"
-
-    def __str__(self):
-        return str(self.name)
-
-
-class Member(models.Model):
-    id = models.AutoField(primary_key=True)
-    group = models.ForeignKey(
-        Group,
-        on_delete=models.CASCADE,
-        null=True
-    )
-    username = models.SlugField(max_length=255, unique=True)
-    email = models.EmailField(max_length=255, unique=True)
-    name = models.CharField(max_length=255)
-    hostel = models.ForeignKey(
-        'membership.Hostel',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
-    )
-    joinDate = models.DateField()
-    exitDate = models.DateField(null=True, blank=True)
-    isActive = models.BooleanField(default=True)
-    gender = models.PositiveSmallIntegerField(default=1)
-    telegramID = models.CharField(max_length=255, null=True, blank=True)
-
-    class Meta:
-        db_table = 'member'
-        verbose_name_plural = "Members"
-        verbose_name = "Member"
-
-    def __str__(self):
-        return str(self.name)
-
-
-__all__ = [
-    'Member',
-]
+__all__ = ['Group']
