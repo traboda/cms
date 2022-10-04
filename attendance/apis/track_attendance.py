@@ -37,7 +37,8 @@ class LogAttendanceAPI(View):
                 device=device,
             )
         except AttendanceDevice.DoesNotExist:
-            return JsonResponse('Invalid MAC address', status=400)
+            return JsonResponse('Invalid MAC address', status=401)
+
         return HttpResponse(status=200)
 
 
