@@ -112,3 +112,4 @@ ROUTER_PASSWORD = env.str('ROUTER_PASSWORD', default='')
 ROUTER_IP = env.str('ROUTER_IP', default='192.168.50.1:8443')
 
 TELEGRAM_BOT_TOKEN = env.str('TELEGRAM_BOT_TOKEN', default='')
+ADMIN_ID = env.str('ADMIN_ID', default='')
