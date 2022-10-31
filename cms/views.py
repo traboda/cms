@@ -1,4 +1,5 @@
 from django.http import HttpResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 
@@ -10,16 +11,29 @@ def router_data(request):
 
     if request.method == "POST":
         from attendance.models import AttendanceLog, AttendanceDevice
+
         body = request.body.decode("utf-8")
         data = body.split('\n')
-        for client in data[1:]:
+
+        logs = []
+        print(len(data), 'mac IDs received')
+
+        timestamp = timezone.datetime.strptime(data[0], '%m-%d-%H-%M')
+        timestamp = timestamp.replace(year=timezone.now().year)
+        print('Timestamp:', timestamp)
+
+        for mac in data[1:]:
+            #timestamp = timezone.now().replace(second=0, microsecond=0)
             try:
-                device = AttendanceDevice.objects.get(macAddress=client)
-                AttendanceLog.objects.create(
-                    member=device.member,
-                    device=device
+                device = AttendanceDevice.objects.get(macAddress__iexact=mac)
+                logs.append(
+                    AttendanceLog(
+                        member=device.member,
+                        device=device,
+                        timestamp=timestamp
+                    )
                 )
             except AttendanceDevice.DoesNotExist:
                 pass
-
+        AttendanceLog.objects.bulk_create(logs, ignore_conflicts=True)
         return HttpResponse(status=200)

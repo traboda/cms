@@ -16,6 +16,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1'
 ]
+CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://192.168.50.79']
 
 INSTALLED_APPS = [
     'django.contrib.admin',

@@ -20,6 +20,9 @@ class AttendanceLog(models.Model):
     timestamp = models.DateTimeField(default=timezone.now)
 
     class Meta:
+        unique_together = [
+            ('device', 'timestamp')
+        ]
         db_table = 'attendance_log'
         verbose_name_plural = "Attendance Logs"
         verbose_name = "Attendance Log"

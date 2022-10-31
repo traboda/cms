@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+
 from membership.models.group import Group
 
 
@@ -18,7 +20,7 @@ class Member(models.Model):
         null=True,
         blank=True
     )
-    joinDate = models.DateField()
+    joinDate = models.DateField(default=timezone.now)
     exitDate = models.DateField(null=True, blank=True)
     isActive = models.BooleanField(default=True)
     gender = models.PositiveSmallIntegerField(default=1)

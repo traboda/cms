@@ -195,14 +195,11 @@ class AdminCommandHandler:
             name=context.user_data['name'],
             member_id=context.user_data['user'],
             macAddress=context.user_data['mac'],
-            bluetoothAddress=context.user_data['bluetooth'],
         )
 
         update.message.reply_text("Device added successfully", reply_markup=ReplyKeyboardRemove())
 
         return ConversationHandler.END
-
-
 
     def cancel_interaction(self, update: Update, context: CallbackContext) -> int:
         update.message.reply_text(text="Interaction cancelled", reply_markup=ReplyKeyboardRemove())

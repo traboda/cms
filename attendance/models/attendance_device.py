@@ -10,7 +10,6 @@ class AttendanceDevice(models.Model):
         on_delete=models.CASCADE
     )
     macAddress = models.CharField(max_length=17, unique=True)
-    bluetoothAddress = models.CharField(max_length=50, unique=True)
     timestampAdded = models.DateTimeField(default=timezone.now)
 
     class Meta:
