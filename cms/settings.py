@@ -7,16 +7,12 @@ env.read_env()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 SECRET_KEY = env.str('SECRET_KEY', default='yki%oe0)_!jua45_n^v=kzc9)6q*)^gz!3zz#7lh4j8pkj9jbo')
 
 DEBUG = env.bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1'
-]
-CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://192.168.50.79']
+ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://192.168.50.79', 'https://cms.traboda.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -25,8 +21,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
-    'huey.contrib.djhuey',
 
     'attendance',
     'membership'
@@ -74,13 +68,6 @@ DATABASES = {
     }
 }
 
-
-HUEY = {
-    'huey_class': 'huey.SqliteHuey',
-    'name': 'platform-task-queue',
-    'immediate': False
-}
-
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -106,7 +93,6 @@ STATIC_LOCATION = 'static'
 STATIC_ROOT = 'static'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 
 ROUTER_USERNAME = env.str('ROUTER_USERNAME', default='')
 ROUTER_PASSWORD = env.str('ROUTER_PASSWORD', default='')
