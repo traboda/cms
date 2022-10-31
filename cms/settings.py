@@ -117,7 +117,7 @@ if DEBUG:
 else:
     STATIC_LOCATION = "static"
     STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{STATIC_LOCATION}/"
-    STATICFILES_STORAGE = "framework.utils.storage.StaticStorage"
+    STATICFILES_STORAGE = "cms.utils.storage.StaticStorage"
     STATICFILES_DIRS = (os.path.join("static"),)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
