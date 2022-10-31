@@ -1,3 +1,4 @@
+import os
 from environs import Env
 from pathlib import Path
 
@@ -93,9 +94,31 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-STATIC_URL = '/api/static/'
-STATIC_LOCATION = 'static'
-STATIC_ROOT = 'static'
+AWS_ACCESS_KEY_ID = env.str("AWS_ACCESS_KEY_ID", default="")
+AWS_SECRET_ACCESS_KEY = env.str("AWS_SECRET_ACCESS_KEY", default="")
+
+AWS_STORAGE_BUCKET_NAME = env.str("S3_STORAGE_BUCKET_NAME", default="")
+AWS_S3_REGION_NAME = env.str("S3_REGION_NAME", default="ap-south-1")
+AWS_S3_CUSTOM_DOMAIN_ENV = env.str("AWS_S3_CUSTOM_DOMAIN", default=None)
+AWS_S3_CUSTOM_DOMAIN = (
+    AWS_S3_CUSTOM_DOMAIN_ENV
+    if AWS_S3_CUSTOM_DOMAIN_ENV
+    else f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
+)
+AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
+AWS_S3_SIGNATURE_VERSION = "s3v4"
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = True
+
+if DEBUG:
+    STATIC_URL = "static/"
+    STATIC_LOCATION = 'static'
+    STATIC_ROOT = 'static'
+else:
+    STATIC_LOCATION = "static"
+    STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{STATIC_LOCATION}/"
+    STATICFILES_STORAGE = "framework.utils.storage.StaticStorage"
+    STATICFILES_DIRS = (os.path.join("static"),)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
