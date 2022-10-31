@@ -17,7 +17,7 @@ SECRET_KEY = env.str('SECRET_KEY', default='yki%oe0)_!jua45_n^v=kzc9)6q*)^gz!3zz
 DEBUG = env.bool('DEBUG', default=True)
 
 ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://192.168.50.79', 'https://cms.traboda.com']
+CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://192.168.50.79', 'http://127.0.0.1', 'https://cms.traboda.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -93,7 +93,7 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-STATIC_URL = '/static/'
+STATIC_URL = '/api/static/'
 STATIC_LOCATION = 'static'
 STATIC_ROOT = 'static'
 

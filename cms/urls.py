@@ -26,5 +26,5 @@ urlpatterns = [
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 urlpatterns = [
-    path('attendance/', include(urlpatterns))
+    path('api/', include(urlpatterns))
 ]
