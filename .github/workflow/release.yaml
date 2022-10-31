@@ -1,0 +1,46 @@
+name: Release Workflows
+
+on:
+  workflow_dispatch:
+    inputs:
+      versionNumber:
+        description: 'Release version (eg. 3.2.0):'
+        required: true
+    branches:
+      - main
+
+jobs:
+
+  generate_image:
+    name: Build & push docker image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Setup Docker Caching
+        uses: satackey/action-docker-layer-caching@v0.0.11
+        continue-on-error: true
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ github.repository }}
+          TAG: ${{ github.event.inputs.versionNumber }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
