@@ -18,6 +18,7 @@ class AttendanceLog(models.Model):
     )
     ipAddress = models.GenericIPAddressField(null=True, blank=True)
     timestamp = models.DateTimeField(default=timezone.now)
+    tracker = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
         unique_together = [

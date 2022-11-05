@@ -6,8 +6,8 @@ from .models import AttendanceDevice, AttendanceLog, LeaveRequest
 @admin.register(AttendanceLog)
 class AttendanceLogAdmin(admin.ModelAdmin):
     autocomplete_fields = ['member', 'device']
-    search_fields = ['member', 'device__macAddress']
-    list_display = ['member', 'type', 'device', 'timestamp']
+    search_fields = ['member', 'device__macAddress', 'tracker']
+    list_display = ['member', 'type', 'device', 'timestamp', 'tracker']
     list_filter = ['type', 'timestamp']
 
 
