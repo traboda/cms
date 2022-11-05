@@ -60,6 +60,10 @@ def log_sniffed_mac(request):
                 entry.minutes += 5
                 if entry.logs is None:
                     entry.logs = []
+                for log in entry.logs:
+                    if log['timestamp'] == timestamp.isoformat():
+                        print('log already exists')
+                        break
                 entry.logs.append(log)
                 entry.save()
             else:
