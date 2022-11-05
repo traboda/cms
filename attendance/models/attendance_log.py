@@ -28,7 +28,7 @@ class AttendanceLog(models.Model):
                 'id': self.device.id,
                 'name': self.device.name,
             },
-            'timestamp': self.timestamp,
+            'timestamp': self.timestamp.isoformat(),
             'tracker': self.tracker,
         }
 
