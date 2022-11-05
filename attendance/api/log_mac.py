@@ -27,6 +27,9 @@ def log_sniffed_mac(request):
         except APIToken.DoesNotExist:
             return HttpResponse("Invalid Token", content_type='text/plain', status=401)
 
+        if token.client.attendance < 2:
+            return HttpResponse("Permission Denied", content_type='text/plain', status=401)
+
         body = request.body.decode("utf-8")
         data = body.split('\n')
 
