@@ -20,6 +20,18 @@ class AttendanceLog(models.Model):
     timestamp = models.DateTimeField(default=timezone.now)
     tracker = models.CharField(max_length=50, null=True, blank=True)
 
+    @property
+    def data(self):
+        return {
+            'type': self.type,
+            'device': {
+                'id': self.device.id,
+                'name': self.device.name,
+            },
+            'timestamp': self.timestamp,
+            'tracker': self.tracker,
+        }
+
     class Meta:
         unique_together = [
             ('device', 'timestamp')

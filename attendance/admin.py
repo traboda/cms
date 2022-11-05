@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import AttendanceDevice, AttendanceLog, LeaveRequest
+from .models import AttendanceDevice, AttendanceLog, LeaveRequest, AttendanceDateLog
+
+
+@admin.register(AttendanceDateLog)
+class AttendanceDateLogAdmin(admin.ModelAdmin):
+    autocomplete_fields = ['member']
+    list_display = ['member', 'date', 'minutes']
+    search_fields = ['member__name', 'member__email', 'member__id', 'date']
+    list_filter = ['date']
 
 
 @admin.register(AttendanceLog)

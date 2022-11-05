@@ -10,7 +10,7 @@ def log_sniffed_mac(request):
         return HttpResponse("Method Not Allowed", content_type='text/plain', status=405)
 
     if request.method == "POST":
-        from attendance.models import AttendanceLog, AttendanceDevice
+        from attendance.models import AttendanceDevice, AttendanceDateLog
 
         auth_token = request.headers.get('Authorization')
 
@@ -40,21 +40,34 @@ def log_sniffed_mac(request):
         timestamp = timestamp.replace(year=timezone.now().year)
         print('Timestamp:', timestamp)
 
-        for mac in data[1:]:
-            try:
-                device = AttendanceDevice.objects.get(macAddress__iexact=mac)
+        devices = AttendanceDevice.objects.filter(macAddress__iregex=r'(' + '|'.join(data[1:]) + ')')
+        for device in devices:
+            log = {
+                'type': 'WIFI_SNIFFING',
+                'device': {
+                    'id': device.id,
+                    'name': device.name,
+                },
+                'timestamp': timestamp,
+                'tracker': token.client.name,
+            }
+            if AttendanceDateLog.objects.filter(member=device.member, date=timestamp.date()).exists():
+                entry = AttendanceDateLog.objects.get(member=device.member, date=timestamp.date())
+                entry.minutes += 5
+                if entry.logs is None:
+                    entry.logs = []
+                entry.logs.append(log)
+                entry.save()
+            else:
                 logs.append(
-                    AttendanceLog(
+                    AttendanceDateLog(
                         member=device.member,
-                        device=device,
-                        timestamp=timestamp,
-                        tracker=token.client.name,
-                        type='WIFI_SNIFFING'
+                        date=timestamp.date(),
+                        minutes=5,
+                        logs=[log]
                     )
                 )
-            except AttendanceDevice.DoesNotExist:
-                pass
-        AttendanceLog.objects.bulk_create(logs, ignore_conflicts=True)
+        AttendanceDateLog.objects.bulk_create(logs, ignore_conflicts=True)
         return HttpResponse(status=200)
 
 
