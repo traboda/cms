@@ -15,19 +15,23 @@ def log_sniffed_mac(request):
         auth_token = request.headers.get('Authorization')
 
         if auth_token is None:
+            print('No auth token')
             return HttpResponse("Unauthorized", content_type='text/plain', status=401)
 
         from api.models import APIToken
         if auth_token.split(' ')[0] != 'Bearer':
+            print('invalid auth token pattern')
             return HttpResponse("Unauthorized", content_type='text/plain', status=401)
         auth_token = auth_token.split(' ')[1]
 
         try:
             token = APIToken.objects.get(token=auth_token)
         except APIToken.DoesNotExist:
+            print('invalid auth token')
             return HttpResponse("Invalid Token", content_type='text/plain', status=401)
 
         if token.client.attendance < 2:
+            print('invalid auth token permission')
             return HttpResponse("Permission Denied", content_type='text/plain', status=401)
 
         body = request.body.decode("utf-8")
