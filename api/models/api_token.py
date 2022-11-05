@@ -10,7 +10,7 @@ class APIToken(models.Model):
 
     def generate_token(self):
         from django.utils.crypto import get_random_string
-        self.token = get_random_string(length=255)
+        self.token = get_random_string(length=64)
 
     def save(self, *args, **kwargs):
         if self.pk is None:
