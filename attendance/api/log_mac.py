@@ -48,7 +48,7 @@ def log_sniffed_mac(request):
                     'id': device.id,
                     'name': device.name,
                 },
-                'timestamp': timestamp,
+                'timestamp': timestamp.isoformat(),
                 'tracker': token.client.name,
             }
             if AttendanceDateLog.objects.filter(member=device.member, date=timestamp.date()).exists():
