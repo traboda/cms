@@ -23,7 +23,6 @@ def router_data(request):
         print('Timestamp:', timestamp)
 
         for mac in data[1:]:
-            #timestamp = timezone.now().replace(second=0, microsecond=0)
             try:
                 device = AttendanceDevice.objects.get(macAddress__iexact=mac)
                 logs.append(
