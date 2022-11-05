@@ -4,8 +4,16 @@ from django.db import models
 class Hostel(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
-    wardenName = models.CharField(max_length=100, null=True, blank=True)
-    wardenNumber = models.CharField(max_length=20, null=True, blank=True)
+    wardenName = models.CharField(
+        verbose_name='Warden Name',
+        max_length=100,
+        null=True, blank=True
+    )
+    wardenNumber = models.CharField(
+        verbose_name='Warden Number',
+        max_length=20,
+        null=True, blank=True
+    )
 
     class Meta:
         db_table = 'hostel'

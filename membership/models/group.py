@@ -10,10 +10,10 @@ class Group(models.Model):
     name = models.CharField(max_length=100)
 
     # timings
-    workingDayOpenTime = models.TimeField()
-    workingDayCloseTime = models.TimeField()
-    holidayOpenTime = models.TimeField()
-    holidayCloseTime = models.TimeField()
+    workingDayOpenTime = models.TimeField(null=True, blank=True)
+    workingDayCloseTime = models.TimeField(null=True, blank=True)
+    holidayOpenTime = models.TimeField(null=True, blank=True)
+    holidayCloseTime = models.TimeField(null=True, blank=True)
 
     @property
     def now(self):
