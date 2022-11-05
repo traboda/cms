@@ -19,11 +19,9 @@ from django.conf.urls.static import static
 from django.conf import settings
 
 from attendance.api.log_mac import log_sniffed_mac
-from .views import router_data
 
 
 urlpatterns = [
-    path('router-log/', router_data),
     path('log/macs/sniffed/', log_sniffed_mac),
     path('admin/', admin.site.urls),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
