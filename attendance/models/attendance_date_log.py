@@ -8,8 +8,11 @@ class AttendanceDateLog(models.Model):
         on_delete=models.CASCADE
     )
     date = models.DateField()
-    minutes = models.PositiveSmallIntegerField()
     logs = models.JSONField()
+
+    @property
+    def minutes(self):
+        return len(self.logs if self.logs else {})
 
     class Meta:
         unique_together = [

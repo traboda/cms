@@ -10,7 +10,7 @@ def log_sniffed_mac(request):
         return HttpResponse("Method Not Allowed", content_type='text/plain', status=405)
 
     if request.method == "POST":
-        from attendance.models import AttendanceDevice, AttendanceDateLog
+        from attendance.models import AttendanceDevice, AttendanceDateLog, AttendanceTrackerLog
 
         auth_token = request.headers.get('Authorization')
 
@@ -38,12 +38,19 @@ def log_sniffed_mac(request):
         data = body.split('\n')
 
         logs = []
-        print(len(data), 'mac IDs received')
 
         timestamp = timezone.datetime.strptime(data[0], '%m-%d-%H-%M')
         timestamp = timestamp.replace(year=timezone.now().year)
         print('Timestamp:', timestamp)
 
+        if AttendanceTrackerLog.objects.filter(timestamp=timestamp, client=token.client).exists():
+            return HttpResponse(status=200)
+
+        AttendanceTrackerLog.objects.create(
+            timestamp=timestamp,
+            client=token.client,
+            logs=data
+        )
         devices = AttendanceDevice.objects.filter(macAddress__iregex=r'(' + '|'.join(data[1:]) + ')')
         for device in devices:
             log = {
@@ -52,27 +59,25 @@ def log_sniffed_mac(request):
                     'id': device.id,
                     'name': device.name,
                 },
-                'timestamp': timestamp.isoformat(),
                 'tracker': token.client.name,
             }
             if AttendanceDateLog.objects.filter(member=device.member, date=timestamp.date()).exists():
                 entry = AttendanceDateLog.objects.get(member=device.member, date=timestamp.date())
-                entry.minutes += 5
                 if entry.logs is None:
-                    entry.logs = []
-                for log in entry.logs:
-                    if log['timestamp'] == timestamp.isoformat():
-                        print('log already exists')
-                        break
-                entry.logs.append(log)
+                    entry.logs = {}
+                entry.logs[timestamp.isoformat()] = {
+                    **entry.logs.get(timestamp.isoformat(), {}),
+                    **log,
+                }
                 entry.save()
             else:
                 logs.append(
                     AttendanceDateLog(
                         member=device.member,
                         date=timestamp.date(),
-                        minutes=5,
-                        logs=[log]
+                        logs={
+                            timestamp.isoformat(): log,
+                        }
                     )
                 )
         AttendanceDateLog.objects.bulk_create(logs, ignore_conflicts=True)

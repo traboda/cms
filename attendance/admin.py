@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AttendanceDevice, LeaveRequest, AttendanceDateLog
+from .models import AttendanceDevice, LeaveRequest, AttendanceDateLog, AttendanceTrackerLog
 
 
 @admin.register(AttendanceDateLog)
@@ -23,3 +23,8 @@ class LeaveRequestAdmin(admin.ModelAdmin):
     autocomplete_fields = ['member']
     list_display = ['member', 'category', 'timestamp']
     list_filter = ['category', 'timestamp']
+
+
+@admin.register(AttendanceTrackerLog)
+class AttendanceTrackerLogAdmin(admin.ModelAdmin):
+    list_filter = ['timestamp']
