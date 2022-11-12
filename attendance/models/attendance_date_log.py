@@ -12,7 +12,7 @@ class AttendanceDateLog(models.Model):
 
     @property
     def minutes(self):
-        return len(self.logs if self.logs else {})
+        return len(self.logs if self.logs else {}) * 5
 
     class Meta:
         unique_together = [

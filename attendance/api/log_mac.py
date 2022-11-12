@@ -65,10 +65,9 @@ def log_sniffed_mac(request):
                 entry = AttendanceDateLog.objects.get(member=device.member, date=timestamp.date())
                 if entry.logs is None:
                     entry.logs = {}
-                entry.logs[timestamp.isoformat()] = {
-                    **entry.logs.get(timestamp.isoformat(), {}),
-                    **log,
-                }
+                if str(timestamp.isoformat()) not in entry.logs:
+                    entry.logs[str(timestamp.isoformat())] = []
+                entry.logs[str(timestamp.isoformat())].append(log)
                 entry.save()
             else:
                 logs.append(
