@@ -46,13 +46,19 @@ def log_sniffed_mac(request):
         if AttendanceTrackerLog.objects.filter(timestamp=timestamp, client=token.client).exists():
             return HttpResponse(status=200)
 
-        devices = AttendanceDevice.objects.filter(macAddress__iregex=r'(' + '|'.join(data[1:]) + ')')
+        # convert mac addresses to uppercase
+        for i in range(1, len(data)):
+            data[i] = data[i].upper()
+
+        devices = AttendanceDevice.objects.filter(macAddress__in=data[1:])
 
         AttendanceTrackerLog.objects.create(
             timestamp=timestamp,
             client=token.client,
             logs={
+                'totalMacs': len(data) - 1,
                 'macs': data[1:],
+                'totalDevices': len(devices),
                 'users': [
                     (d.member.username, d.macAddress) for d in devices
                 ]

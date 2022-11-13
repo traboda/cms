@@ -12,6 +12,11 @@ class AttendanceDevice(models.Model):
     macAddress = models.CharField(max_length=17, unique=True)
     timestampAdded = models.DateTimeField(default=timezone.now)
 
+    def save(self, *args, **kwargs):
+        if self.macAddress:
+            self.macAddress = self.macAddress.upper()
+        super().save(*args, **kwargs)
+
     class Meta:
         db_table = 'attendance_device'
         verbose_name_plural = "Attendance Devices"
