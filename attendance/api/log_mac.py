@@ -46,15 +46,23 @@ def log_sniffed_mac(request):
         if AttendanceTrackerLog.objects.filter(timestamp=timestamp, client=token.client).exists():
             return HttpResponse(status=200)
 
+        devices = AttendanceDevice.objects.filter(macAddress__iregex=r'(' + '|'.join(data[1:]) + ')')
+
         AttendanceTrackerLog.objects.create(
             timestamp=timestamp,
             client=token.client,
-            logs=data
+            logs={
+                'macs': data[1:],
+                'users': [
+                    (d.member.username, d.macAddress) for d in devices
+                ]
+            }
         )
-        devices = AttendanceDevice.objects.filter(macAddress__iregex=r'(' + '|'.join(data[1:]) + ')')
+
         for device in devices:
             log = {
                 'type': 'WIFI_SNIFFING',
+                'mac': device.macAddress,
                 'device': {
                     'id': device.id,
                     'name': device.name,
@@ -65,9 +73,10 @@ def log_sniffed_mac(request):
                 entry = AttendanceDateLog.objects.get(member=device.member, date=timestamp.date())
                 if entry.logs is None:
                     entry.logs = {}
-                if str(timestamp.isoformat()) not in entry.logs:
-                    entry.logs[str(timestamp.isoformat())] = []
-                entry.logs[str(timestamp.isoformat())].append(log)
+                timestring = timestamp.strftime('%H:%M')
+                if str(timestring) not in entry.logs:
+                    entry.logs[timestring] = []
+                entry.logs[timestring].append(log)
                 entry.save()
             else:
                 logs.append(
