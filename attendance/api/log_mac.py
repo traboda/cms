@@ -1,36 +1,18 @@
 from django.http import HttpResponse
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
+from django.views import View
+
+from api.utils.decorator import verify_API_key
 
 
-@csrf_exempt
-def log_sniffed_mac(request):
+class AttendanceLogAPI(View):
 
-    if request.method == "GET":
-        return HttpResponse("Method Not Allowed", content_type='text/plain', status=405)
-
-    if request.method == "POST":
+    @staticmethod
+    @verify_API_key
+    def post(request, *args, **kwargs):
         from attendance.models import AttendanceDevice, AttendanceDateLog, AttendanceTrackerLog
 
-        auth_token = request.headers.get('Authorization')
-
-        if auth_token is None:
-            print('No auth token')
-            return HttpResponse("Unauthorized", content_type='text/plain', status=401)
-
-        from api.models import APIToken
-        if auth_token.split(' ')[0] != 'Bearer':
-            print('invalid auth token pattern')
-            return HttpResponse("Unauthorized", content_type='text/plain', status=401)
-        auth_token = auth_token.split(' ')[1]
-
-        try:
-            token = APIToken.objects.get(token=auth_token)
-        except APIToken.DoesNotExist:
-            print('invalid auth token')
-            return HttpResponse("Invalid Token", content_type='text/plain', status=401)
-
-        if token.client.attendance < 2:
+        if request.token.client.attendance < 2:
             print('invalid auth token permission')
             return HttpResponse("Permission Denied", content_type='text/plain', status=401)
 
@@ -43,7 +25,7 @@ def log_sniffed_mac(request):
         timestamp = timestamp.replace(year=timezone.now().year)
         print('Timestamp:', timestamp)
 
-        if AttendanceTrackerLog.objects.filter(timestamp=timestamp, client=token.client).exists():
+        if AttendanceTrackerLog.objects.filter(timestamp=timestamp, client=request.token.client).exists():
             return HttpResponse(status=200)
 
         # convert mac addresses to uppercase
@@ -54,7 +36,7 @@ def log_sniffed_mac(request):
 
         AttendanceTrackerLog.objects.create(
             timestamp=timestamp,
-            client=token.client,
+            client=request.token.client,
             logs={
                 'totalMacs': len(data) - 1,
                 'macs': data[1:],
@@ -65,39 +47,37 @@ def log_sniffed_mac(request):
             }
         )
 
+        timestring = timestamp.strftime('%H:%M')
         for device in devices:
-            log = {
-                'type': 'WIFI_SNIFFING',
-                'mac': device.macAddress,
-                'device': {
-                    'id': device.id,
-                    'name': device.name,
-                },
-                'tracker': token.client.name,
-            }
             if AttendanceDateLog.objects.filter(member=device.member, date=timestamp.date()).exists():
                 entry = AttendanceDateLog.objects.get(member=device.member, date=timestamp.date())
                 if entry.logs is None:
                     entry.logs = {}
-                timestring = timestamp.strftime('%H:%M')
+
                 if str(timestring) not in entry.logs:
                     entry.logs[timestring] = []
-                entry.logs[timestring].append(log)
+                entry.logs[timestring].append(device.macAddress)
+                entry.lastSeen = timestring
                 entry.save()
+                member = device.member
             else:
                 logs.append(
                     AttendanceDateLog(
                         member=device.member,
                         date=timestamp.date(),
                         logs={
-                            timestamp.isoformat(): log,
-                        }
+                            timestring: [device.macAddress],
+                        },
+                        lastSeen=timestring
                     )
                 )
+                member = device.member
+            member.lastSeen = timezone.now()
+            member.save()
         AttendanceDateLog.objects.bulk_create(logs, ignore_conflicts=True)
         return HttpResponse(status=200)
 
 
 __all__ = [
-    'log_sniffed_mac',
+    'AttendanceLogAPI',
 ]

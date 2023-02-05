@@ -21,6 +21,7 @@ class Member(models.Model):
         blank=True
     )
     joinDate = models.DateField(default=timezone.now)
+    lastSeen = models.DateTimeField(null=True, blank=True)
     exitDate = models.DateField(null=True, blank=True)
     isActive = models.BooleanField(default=True)
     gender = models.PositiveSmallIntegerField(default=1)

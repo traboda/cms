@@ -10,6 +10,18 @@ class AttendanceTrackerLog(models.Model):
     )
     logs = models.JSONField()
 
+    @property
+    def totalMacs(self):
+        if self.logs and 'macs' in self.logs:
+            return len(self.logs['macs'])
+        return 0
+
+    @property
+    def totalUsers(self):
+        if self.logs and 'users' in self.logs:
+            return len(self.logs['users'])
+        return 0
+
     class Meta:
         unique_together = [
             ('timestamp', 'client')

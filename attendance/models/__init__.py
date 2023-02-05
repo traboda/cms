@@ -7,5 +7,6 @@ from .leave_request import LeaveRequest
 __all__ = [
     'AttendanceDevice',
     'AttendanceDateLog',
+    'AttendanceTrackerLog',
     'LeaveRequest'
 ]
