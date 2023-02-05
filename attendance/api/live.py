@@ -6,23 +6,33 @@ from django.views import View
 
 from api.utils.decorator import verify_API_key
 from attendance.models import AttendanceDateLog
+from membership.models import Member
 
 
 class LiveAttendanceAPI(View):
 
     @staticmethod
     @verify_API_key
-    def get(request, *args, **kwargs):
+    def get(request, groupID = None, genderID = None, *args, **kwargs):
         now = timezone.now().astimezone(timezone.get_current_timezone())
-        attendance = AttendanceDateLog.objects.filter(
+
+        logQS = AttendanceDateLog.objects.all()
+        memberQS = Member.objects.filter(isActive=True, exitDate__isnull=True)
+        if groupID is not None:
+            memberQS = memberQS.filter(group__id=groupID)
+            logQS = logQS.filter(member__group__id=groupID)
+        if genderID is not None:
+            memberQS = memberQS.filter(gender=genderID)
+            logQS = logQS.filter(member__gender=genderID)
+
+        attendance = logQS.filter(
             date=now.date(),
             lastSeen__hour__gte=now.hour,
             lastSeen__minute__gte=now.minute - 10,
         )
-        from membership.models import Member
 
         presentNowMemberIDs: List[int] = attendance.values_list('member_id', flat=True)
-        presentTodayMemberIDs: List[int] = AttendanceDateLog.objects.filter(
+        presentTodayMemberIDs: List[int] = logQS.filter(
             date=now.date()
         ).values_list('member_id', flat=True)
 
@@ -31,7 +41,7 @@ class LiveAttendanceAPI(View):
             if memberID not in presentNowMemberIDs:
                 absentNowMemberIDs.append(memberID)
 
-        absentTodayMemberIDs: List[int] = Member.objects.exclude(
+        absentTodayMemberIDs: List[int] = memberQS.exclude(
             id__in=presentTodayMemberIDs
         ).filter(isActive=True).values_list('id', flat=True)
 
@@ -52,31 +62,31 @@ class LiveAttendanceAPI(View):
             'present': [],
             'absent': [],
         }
-        for member in Member.objects.filter(id__in=presentNowMemberIDs, isActive=True):
+        for member in memberQS.filter(id__in=presentNowMemberIDs, isActive=True):
             data['now']['present'].append({
                 'id': member.id,
                 'name': member.name,
                 'totalMinutes': attendance.get(member=member).minutes,
             })
-        for member in Member.objects.filter(id__in=absentNowMemberIDs, isActive=True):
+        for member in memberQS.filter(id__in=absentNowMemberIDs, isActive=True):
             data['now']['absent'].append({
                 'id': member.id,
                 'name': member.name,
-                'totalMinutes': AttendanceDateLog.objects.get(member=member, date=now.date()).minutes,
+                'totalMinutes': logQS.get(member=member, date=now.date()).minutes,
                 'lastSeen': member.lastSeen.astimezone(
                     timezone.get_current_timezone()
                 ).isoformat() if member.lastSeen else None,
             })
-        for member in Member.objects.filter(id__in=presentTodayMemberIDs).filter(isActive=True):
+        for member in memberQS.filter(id__in=presentTodayMemberIDs).filter(isActive=True):
             data['today']['present'].append({
                 'id': member.id,
                 'name': member.name,
-                'totalMinutes': AttendanceDateLog.objects.get(member=member, date=now.date()).minutes,
+                'totalMinutes': logQS.get(member=member, date=now.date()).minutes,
                 'lastSeen': member.lastSeen.astimezone(
                     timezone.get_current_timezone()
                 ).isoformat() if member.lastSeen else None,
             })
-        for member in Member.objects.filter(id__in=absentTodayMemberIDs).filter(isActive=True):
+        for member in memberQS.filter(id__in=absentTodayMemberIDs).filter(isActive=True):
             data['today']['absent'].append({
                 'id': member.id,
                 'name': member.name,
