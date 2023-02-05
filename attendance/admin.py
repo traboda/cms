@@ -1,55 +1,57 @@
+
 from django.contrib import admin
 
 from .models import AttendanceDevice, LeaveRequest, AttendanceDateLog, AttendanceTrackerLog
 
 
-# class LasListFilter(admin.SimpleListFilter):
-#     # Human-readable title which will be displayed in the
-#     # right admin sidebar just above the filter options.
-#     title = _('decade born')
-#
-#     # Parameter for the filter that will be used in the URL query.
-#     parameter_name = 'decade'
-#
-#     def lookups(self, request, model_admin):
-#         """
-#         Returns a list of tuples. The first element in each
-#         tuple is the coded value for the option that will
-#         appear in the URL query. The second element is the
-#         human-readable name for the option that will appear
-#         in the right sidebar.
-#         """
-#         return (
-#             ('80s', _('in the eighties')),
-#             ('90s', _('in the nineties')),
-#         )
-#
-#     def queryset(self, request, queryset):
-#         """
-#         Returns the filtered queryset based on the value
-#         provided in the query string and retrievable via
-#         `self.value()`.
-#         """
-#         # Compare the requested value (either '80s' or '90s')
-#         # to decide how to filter the queryset.
-#         if self.value() == '80s':
-#             return queryset.filter(
-#                 birthday__gte=date(1980, 1, 1),
-#                 birthday__lte=date(1989, 12, 31),
-#             )
-#         if self.value() == '90s':
-#             return queryset.filter(
-#                 birthday__gte=date(1990, 1, 1),
-#                 birthday__lte=date(1999, 12, 31),
-#             )
+class DurationListFilter(admin.SimpleListFilter):
+    title = 'duration'
+
+    parameter_name = 'duration'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('0', 'upto 1 hr'),
+            ('1', '1 - 3 hrs'),
+            ('3', '3 - 6 hrs'),
+            ('6', '6 - 12 hrs'),
+            ('12', 'more than 12 hrs'),
+        )
+
+    def queryset(self, request, queryset):
+        from django.utils import timezone
+        if self.value() == '0':
+            return queryset.filter(
+                duration__gte=timezone.timedelta(minutes=0),
+                duration__lte=timezone.timedelta(minutes=60),
+            )
+        if self.value() == '1':
+            return queryset.filter(
+                duration__gte=timezone.timedelta(minutes=60),
+                duration__lte=timezone.timedelta(minutes=180),
+            )
+        if self.value() == '3':
+            return queryset.filter(
+                duration__gte=timezone.timedelta(minutes=180),
+                duration__lte=timezone.timedelta(minutes=360),
+            )
+        if self.value() == '6':
+            return queryset.filter(
+                duration__gte=timezone.timedelta(minutes=360),
+                duration__lte=timezone.timedelta(minutes=720),
+            )
+        if self.value() == '12':
+            return queryset.filter(
+                duration__gte=timezone.timedelta(minutes=720),
+            )
 
 
 @admin.register(AttendanceDateLog)
 class AttendanceDateLogAdmin(admin.ModelAdmin):
     autocomplete_fields = ['member']
-    list_display = ['member', 'date', 'lastSeen', 'formattedTime']
+    list_display = ['member', 'date', 'lastSeen', 'duration']
     search_fields = ['member__name', 'member__email', 'member__id', 'date']
-    list_filter = ['date', 'member__group', 'member__gender']
+    list_filter = ['date', 'member__group', 'member__gender', DurationListFilter]
     ordering = ['-date', '-lastSeen', 'member__name']
 
 

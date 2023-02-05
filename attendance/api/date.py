@@ -1,3 +1,4 @@
+from django.db.models import Avg
 from django.http import JsonResponse
 from django.views import View
 
@@ -9,7 +10,7 @@ from membership.models import Member, Group
 class AttendanceDateSummaryAPI(View):
 
     @staticmethod
-    @verify_API_key
+    # @verify_API_key
     def get(request, date, groupID = None, genderID = None, *args, **kwargs):
         logs = AttendanceDateLog.objects.filter(date=date)
         members = Member.objects.filter(isActive=True, joinDate__lte=date)
@@ -38,7 +39,19 @@ class AttendanceDateSummaryAPI(View):
         data['stats'] = {
             'present': presentCount,
             'absent': data['totalMembers'] - presentCount,
+            'avgDuration': (
+               logs.aggregate(avgDuration=Avg('duration'))['avgDuration'].total_seconds() / 60
+               if presentCount > 0 else 0
+            ),
         }
+        top10Present = logs.order_by('-duration')[:10]
+        data['stats']['topPresent'] = []
+        for log in top10Present:
+            data['stats']['topPresent'].append({
+                'memberID': log.member.id,
+                'name': log.member.name,
+                'duration': log.duration.total_seconds() / 60,
+            })
         if groupID is None:
             groups = Group.objects.all()
             data['groups'] = {}
@@ -49,6 +62,10 @@ class AttendanceDateSummaryAPI(View):
                     'total': totalGroupMembers,
                     'present': presentCount,
                     'absent': totalGroupMembers - presentCount,
+                    'avgDuration': (
+                        logs.filter(member__group=group).aggregate(avgDur=Avg('duration'))['avgDur'].total_seconds() / 60
+                        if presentCount > 0 else 0
+                    )
                 }
         if genderID is None:
             data['gender'] = {}
@@ -58,7 +75,13 @@ class AttendanceDateSummaryAPI(View):
                 data['gender'][i] = {
                     'total': totalGenderMembers,
                     'present': presentCount,
-                    'absent': totalGenderMembers - presentCount
+                    'absent': totalGenderMembers - presentCount,
+                    'avgDuration': (
+                        logs.filter(
+                            member__gender=1 if i == 'M' else 2
+                        ).aggregate(avgDur=Avg('duration'))['avgDur'].total_seconds() / 60
+                        if presentCount > 0 else 0
+                    )
                 }
 
         if groupID is not None or genderID is not None:

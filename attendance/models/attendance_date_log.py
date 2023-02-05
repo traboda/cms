@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class AttendanceDateLog(models.Model):
@@ -10,6 +11,7 @@ class AttendanceDateLog(models.Model):
     date = models.DateField()
     logs = models.JSONField()
     lastSeen = models.TimeField(null=True, blank=True)
+    duration = models.DurationField(default=timezone.timedelta(minutes=0))
 
     @property
     def minutes(self):
@@ -48,7 +50,6 @@ class AttendanceDateLog(models.Model):
         hours, minutes = keys[0].split(':')
         hours, minutes = int(hours), int(minutes)
         date = self.date
-        from django.utils import timezone
         return timezone.datetime(
             date.year, date.month, date.day, hours, minutes, tzinfo=timezone.get_current_timezone()
         )
@@ -119,6 +120,13 @@ class AttendanceDateLog(models.Model):
 
         data.sort(key=lambda x: x[0])
         return data
+
+    def save(self, *args, **kwargs):
+        if self.logs is not None:
+            from django.utils import timezone
+            minutes = len(self.logs if self.logs else {}) * 5
+            self.duration = timezone.timedelta(minutes=minutes)
+        super().save(*args, **kwargs)
 
     class Meta:
         unique_together = [
