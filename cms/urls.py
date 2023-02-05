@@ -20,9 +20,10 @@ from django.conf import settings
 
 from attendance.api import attendance_apis
 from attendance.api.log_mac import AttendanceLogAPI
+from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = [
-    path('log/macs/sniffed/', AttendanceLogAPI.as_view()),
+    path('log/macs/sniffed/', csrf_exempt(AttendanceLogAPI.as_view())),
     path('attendance/', include(attendance_apis)),
     path('admin/', admin.site.urls),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

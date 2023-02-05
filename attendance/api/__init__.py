@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 
 from .log_mac import AttendanceLogAPI
 from .profile import AttendanceProfileAPI
@@ -6,7 +7,7 @@ from .live import LiveAttendanceAPI
 from .date import AttendanceDateSummaryAPI
 
 attendance_apis = [
-    path('log/', AttendanceLogAPI.as_view()),
+    path('log/', csrf_exempt(AttendanceLogAPI.as_view())),
     path('profile/<int:userID>/', AttendanceProfileAPI.as_view()),
     path('live/', LiveAttendanceAPI.as_view()),
     path('live/group/<int:groupID>/', LiveAttendanceAPI.as_view()),
