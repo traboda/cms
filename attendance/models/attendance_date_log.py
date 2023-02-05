@@ -36,6 +36,90 @@ class AttendanceDateLog(models.Model):
             date.year, date.month, date.day, hours, minutes, tzinfo=timezone.get_current_timezone()
         )
 
+    def firstSeenTime(self):
+        if self.logs is None:
+            return None
+        keys = list(self.logs.keys())
+        if len(keys) == 0:
+            return None
+
+        # order keys by earliest time
+        keys.sort()
+        hours, minutes = keys[0].split(':')
+        hours, minutes = int(hours), int(minutes)
+        date = self.date
+        from django.utils import timezone
+        return timezone.datetime(
+            date.year, date.month, date.day, hours, minutes, tzinfo=timezone.get_current_timezone()
+        )
+
+    def lastSeenTime(self):
+        if self.logs is None:
+            return None
+        keys = list(self.logs.keys())
+        if len(keys) == 0:
+            return None
+
+        # order keys by latest time
+        keys.sort(reverse=True)
+        hours, minutes = keys[0].split(':')
+        hours, minutes = int(hours), int(minutes)
+        date = self.date
+        from django.utils import timezone
+        return timezone.datetime(
+            date.year, date.month, date.day, hours, minutes, tzinfo=timezone.get_current_timezone()
+        )
+
+    def find_sessions_from_logs(self):
+        # find continous set of logs which are in intervals of 5 minutes, and put them into a list of sessions,
+        # where each session has a start time and end time
+        sessions = []
+        if self.logs is None:
+            return sessions
+        keys = list(self.logs.keys())
+        if len(keys) == 0:
+            return sessions
+        keys.sort()
+        currentSession = None
+        for key in keys:
+            hours, minutes = key.split(':')
+            hours, minutes = int(hours), int(minutes)
+            date = self.date
+            from django.utils import timezone
+            time = timezone.datetime(
+                date.year, date.month, date.day, hours, minutes, tzinfo=timezone.get_current_timezone()
+            )
+            if currentSession is None:
+                currentSession = {
+                    'start': time,
+                    'end': time,
+                    'duration': 5
+                }
+            else:
+                if (time - currentSession['end']).total_seconds() == 5 * 60:
+                    currentSession['end'] = time
+                    currentSession['duration'] = (currentSession['end'] - currentSession['start']).total_seconds() / 60
+                else:
+                    sessions.append(currentSession)
+                    currentSession = {
+                        'start': time,
+                        'end': time,
+                        'duration': 5
+                    }
+        if currentSession is not None:
+            sessions.append(currentSession)
+
+        data = []
+        for session in sessions:
+            data.append([
+                session['start'].strftime('%I:%M%p'),
+                session['end'].strftime('%I:%M%p'),
+                session['duration']
+            ])
+
+        data.sort(key=lambda x: x[0])
+        return data
+
     class Meta:
         unique_together = [
             ('member', 'date')

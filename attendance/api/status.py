@@ -22,7 +22,9 @@ class LiveAttendanceAPI(View):
         from membership.models import Member
 
         presentNowMemberIDs: List[int] = attendance.values_list('member_id', flat=True)
-        presentTodayMemberIDs: List[int] = AttendanceDateLog.objects.filter(date=now.date()).values_list('member_id', flat=True)
+        presentTodayMemberIDs: List[int] = AttendanceDateLog.objects.filter(
+            date=now.date()
+        ).values_list('member_id', flat=True)
 
         absentNowMemberIDs: List[int] = []
         for memberID in presentTodayMemberIDs:
