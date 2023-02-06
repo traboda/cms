@@ -13,7 +13,7 @@ class LiveAttendanceAPI(View):
 
     @staticmethod
     @verify_API_key
-    def get(request, groupID = None, genderID = None, *args, **kwargs):
+    def get(request, groupID=None, genderID=None, *args, **kwargs):
         now = timezone.now().astimezone(timezone.get_current_timezone())
 
         logQS = AttendanceDateLog.objects.all()
@@ -62,38 +62,59 @@ class LiveAttendanceAPI(View):
             'present': [],
             'absent': [],
         }
+
         for member in memberQS.filter(id__in=presentNowMemberIDs, isActive=True):
-            data['now']['present'].append({
+            d = {
                 'id': member.id,
                 'name': member.name,
                 'totalMinutes': attendance.get(member=member).minutes,
-            })
+            }
+            if groupID is None:
+                d["group"] = {'id': member.group.id, 'name': member.group.name} if member.group else None
+            data['now']['present'].append(d)
+
         for member in memberQS.filter(id__in=absentNowMemberIDs, isActive=True):
-            data['now']['absent'].append({
+            d = {
                 'id': member.id,
                 'name': member.name,
                 'totalMinutes': logQS.get(member=member, date=now.date()).minutes,
                 'lastSeen': member.lastSeen.astimezone(
                     timezone.get_current_timezone()
                 ).isoformat() if member.lastSeen else None,
-            })
+            }
+            if groupID is None:
+                d["group"] = {'id': member.group.id, 'name': member.group.name} if member.group else None
+            data['now']['absent'].append(d)
+
         for member in memberQS.filter(id__in=presentTodayMemberIDs).filter(isActive=True):
-            data['today']['present'].append({
+            d = {
                 'id': member.id,
                 'name': member.name,
+                'group': {
+                    'id': member.group.id,
+                    'name': member.group.name,
+                } if member.group else None,
                 'totalMinutes': logQS.get(member=member, date=now.date()).minutes,
                 'lastSeen': member.lastSeen.astimezone(
                     timezone.get_current_timezone()
                 ).isoformat() if member.lastSeen else None,
-            })
+            }
+            if groupID is None:
+                d["group"] = {'id': member.group.id, 'name': member.group.name} if member.group else None
+            data['today']['present'].append(d)
+
         for member in memberQS.filter(id__in=absentTodayMemberIDs).filter(isActive=True):
-            data['today']['absent'].append({
+            d = {
                 'id': member.id,
                 'name': member.name,
                 'lastSeen': member.lastSeen.astimezone(
                     timezone.get_current_timezone()
                 ).isoformat() if member.lastSeen else None,
-            })
+            }
+            if groupID is None:
+                d["group"] = {'id': member.group.id, 'name': member.group.name} if member.group else None
+            data['today']['absent'].append(d)
+
         return JsonResponse(data, status=200)
 
 
