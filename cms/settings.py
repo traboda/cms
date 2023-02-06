@@ -35,8 +35,6 @@ INSTALLED_APPS = [
     'membership'
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -134,3 +132,14 @@ ROUTER_IP = env.str('ROUTER_IP', default='192.168.50.1:8443')
 
 TELEGRAM_BOT_TOKEN = env.str('TELEGRAM_BOT_TOKEN', default='')
 ADMIN_ID = env.str('ADMIN_ID', default='')
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
