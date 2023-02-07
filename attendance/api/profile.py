@@ -23,7 +23,9 @@ class AttendanceProfileAPI(View):
             'name': member.name,
             'group': member.group.name if member.group else None
         }
-        data['lastSeen'] = member.lastSeen.astimezone(timezone.get_current_timezone()).isoformat()
+        data['lastSeen'] = (
+            member.lastSeen.astimezone(timezone.get_current_timezone()).isoformat()
+        ) if member.lastSeen else None
         now = timezone.now().astimezone(timezone.get_current_timezone())
 
         presenceLast7Days = AttendanceDateLog.objects.filter(
@@ -41,14 +43,14 @@ class AttendanceProfileAPI(View):
 
         data['stats'] = {
             'presence': {
-               'last7Days': presenceLast30Days,
+               'last7Days': presenceLast7Days,
                'last30Days': presenceLast30Days,
                'last6Months': presenceLast6Months,
             },
             'absence': {
-                'last7days': 7 - presenceLast7Days,
-                'last30days': 30 - presenceLast30Days,
-                'last6Months': 30 * 6 - presenceLast6Months,
+                'last7Days': 7 - presenceLast7Days,
+                'last30Days': 30 - presenceLast30Days,
+                'last6Months': (30 * 6) - presenceLast6Months,
             }
         }
 

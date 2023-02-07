@@ -6,7 +6,7 @@ from django.views import View
 
 from api.utils.decorator import verify_API_key
 from attendance.models import AttendanceDateLog
-from membership.models import Member
+from membership.models import Member, Group
 
 
 class LiveAttendanceAPI(View):
@@ -16,11 +16,31 @@ class LiveAttendanceAPI(View):
     def get(request, groupID=None, genderID=None, *args, **kwargs):
         now = timezone.now().astimezone(timezone.get_current_timezone())
 
+        data = {}
+
         logQS = AttendanceDateLog.objects.all()
         memberQS = Member.objects.filter(isActive=True, exitDate__isnull=True)
         if groupID is not None:
+
+            try:
+                group = Group.objects.get(id=groupID)
+            except Group.DoesNotExist:
+                return JsonResponse('Invalid Group ID', status=404)
+
+            data['group'] = {
+                "id": group.id,
+                "name": group.name
+            }
+
             memberQS = memberQS.filter(group__id=groupID)
             logQS = logQS.filter(member__group__id=groupID)
+        else:
+            data['groups'] = []
+            for group in Group.objects.all():
+                data['groups'].append({
+                    "id": group.id,
+                    "name": group.name,
+                })
         if genderID is not None:
             memberQS = memberQS.filter(gender=genderID)
             logQS = logQS.filter(member__gender=genderID)
@@ -45,7 +65,6 @@ class LiveAttendanceAPI(View):
             id__in=presentTodayMemberIDs
         ).filter(isActive=True).values_list('id', flat=True)
 
-        data = {}
         data['timestamp'] = now.isoformat()
         data['stats'] = {
             'presentToday': len(presentTodayMemberIDs),
