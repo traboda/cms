@@ -104,6 +104,10 @@ class AttendanceProfileAPI(View):
             'totalMinutes': totalMinutes,
             'averageMinutes': round(totalMinutes / countedDays) if countedDays > 0 else 0,
         }
+        data['attendanceCalendar'] = {};
+        logs = AttendanceDateLog.objects.filter(member=member).order_by('date').only('date', 'duration')
+        for log in logs:
+            data['attendanceCalendar'][log.date.isoformat()] = log.duration
         return JsonResponse(data, status=200)
 
 
