@@ -9,7 +9,9 @@ class VerifyTokenAPI(View):
     @staticmethod
     @verify_API_key
     def get(request, *args, **kwargs):
-        return JsonResponse('Valid Token', status=200)
+        return JsonResponse({
+            'message': 'Token is valid.'
+        }, status=200)
 
 
 __all__ = [
