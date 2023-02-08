@@ -11,6 +11,12 @@ class Member(models.Model):
         on_delete=models.CASCADE,
         null=True
     )
+    team = models.ForeignKey(
+        'membership.Team',
+        on_delete=models.CASCADE,
+        null=True,
+    )
+    graduationYear = models.PositiveSmallIntegerField(default=2024)
     username = models.SlugField(max_length=255, unique=True)
     email = models.EmailField(max_length=255, unique=True)
     name = models.CharField(max_length=255)
@@ -25,6 +31,7 @@ class Member(models.Model):
     exitDate = models.DateField(null=True, blank=True)
     isActive = models.BooleanField(default=True)
     gender = models.PositiveSmallIntegerField(default=1)
+    mobile = models.CharField(max_length=15, null=True, blank=True)
     telegramID = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
