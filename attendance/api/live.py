@@ -109,10 +109,6 @@ class LiveAttendanceAPI(View):
             d = {
                 'id': member.id,
                 'name': member.name,
-                'group': {
-                    'id': member.group.id,
-                    'name': member.group.name,
-                } if member.group else None,
                 'totalMinutes': logQS.get(member=member, date=now.date()).minutes,
                 'lastSeen': member.lastSeen.astimezone(
                     timezone.get_current_timezone()
