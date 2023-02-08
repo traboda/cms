@@ -6,6 +6,13 @@ from api.utils.decorator import verify_API_key
 from attendance.models import AttendanceDateLog
 
 
+def get_latest_date(offsetDays: int, dateJoined):
+    offsetDate = timezone.now().astimezone(timezone.get_current_timezone()) - timezone.timedelta(days=offsetDays)
+    if offsetDate.date() < dateJoined:
+        return dateJoined
+    return offsetDate.date()
+
+
 class AttendanceProfileAPI(View):
 
     @staticmethod
@@ -17,10 +24,13 @@ class AttendanceProfileAPI(View):
         except Member.DoesNotExist:
             return JsonResponse({'error': 'Member does not exist.'}, status=404)
 
+        dateJoined = member.dateJoined
+
         data = {}
         data['member'] = {
             'id': member.id,
             'name': member.name,
+            'dateJoined': dateJoined,
             'group': member.group.name if member.group else None
         }
         data['lastSeen'] = (
@@ -30,15 +40,15 @@ class AttendanceProfileAPI(View):
 
         presenceLast7Days = AttendanceDateLog.objects.filter(
             member=member,
-            date__gte=(now - timezone.timedelta(days=7)).date()
+            date__gte=(now - timezone.timedelta(days=6)).date()
         ).count()
         presenceLast30Days = AttendanceDateLog.objects.filter(
             member=member,
-            date__gte=(now - timezone.timedelta(days=30)).date()
+            date__gte=(now - timezone.timedelta(days=39)).date()
         ).count()
         presenceLast6Months = AttendanceDateLog.objects.filter(
             member=member,
-            date__gte=(now - timezone.timedelta(days=30 * 6)).date()
+            date__gte=(now - timezone.timedelta(days=(30 * 6)-1)).date()
         ).count()
 
         data['stats'] = {
@@ -48,9 +58,9 @@ class AttendanceProfileAPI(View):
                'last6Months': presenceLast6Months,
             },
             'absence': {
-                'last7Days': 7 - presenceLast7Days,
-                'last30Days': 30 - presenceLast30Days,
-                'last6Months': (30 * 6) - presenceLast6Months,
+                'last7Days': get_latest_date(7, dateJoined) - presenceLast7Days,
+                'last30Days': get_latest_date(30, dateJoined) - presenceLast30Days,
+                'last6Months': get_latest_date((30 * 6)-1, dateJoined) - presenceLast6Months,
             }
         }
 
