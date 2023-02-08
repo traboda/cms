@@ -16,7 +16,7 @@ class Member(models.Model):
         on_delete=models.CASCADE,
         null=True,
     )
-    graduationYear = models.PositiveSmallIntegerField(default=2024)
+    batch = models.PositiveSmallIntegerField(default=2024)
     username = models.SlugField(max_length=255, unique=True)
     email = models.EmailField(max_length=255, unique=True)
     name = models.CharField(max_length=255)

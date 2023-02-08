@@ -51,7 +51,7 @@ class AttendanceDateLogAdmin(admin.ModelAdmin):
     autocomplete_fields = ['member']
     list_display = ['member', 'date', 'lastSeen', 'duration']
     search_fields = ['member__name', 'member__email', 'member__id', 'date']
-    list_filter = ['date', 'member__group', 'member__team', 'member__graduationYear', 'member__gender', DurationListFilter]
+    list_filter = ['date', 'member__group', 'member__team', 'member__batch', 'member__gender', DurationListFilter]
     ordering = ['-date', '-lastSeen', 'member__name']
 
 

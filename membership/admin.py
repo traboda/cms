@@ -16,10 +16,10 @@ class SpecialDateAdmin(admin.ModelAdmin):
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
     search_fields = ['name', 'username']
-    list_display = ['name', 'group', 'team', 'isActive', 'graduationYear', 'hostel', 'gender']
-    list_editable = ['gender', 'hostel', 'team', 'graduationYear', 'group']
+    list_display = ['name', 'team', 'batch', 'hostel']
+    list_editable = ['hostel', 'team', 'batch']
     autocomplete_fields = ['group', 'hostel']
-    list_filter = ['group', 'isActive', 'hostel', 'gender', 'graduationYear', 'team']
+    list_filter = ['group', 'isActive', 'hostel', 'gender', 'batch', 'team']
 
 
 @admin.register(Group)
