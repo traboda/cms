@@ -10,7 +10,7 @@ from membership.models import Member, Group
 class AttendanceDateSummaryAPI(View):
 
     @staticmethod
-    # @verify_API_key
+    @verify_API_key
     def get(request, date, groupID = None, genderID = None, *args, **kwargs):
         logs = AttendanceDateLog.objects.filter(date=date)
         members = Member.objects.filter(isActive=True, joinDate__lte=date)
