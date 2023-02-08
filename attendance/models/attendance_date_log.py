@@ -10,6 +10,7 @@ class AttendanceDateLog(models.Model):
     )
     date = models.DateField()
     logs = models.JSONField()
+    firstSeen = models.TimeField(null=True, blank=True)
     lastSeen = models.TimeField(null=True, blank=True)
     duration = models.DurationField(default=timezone.timedelta(minutes=0))
 
@@ -122,8 +123,9 @@ class AttendanceDateLog(models.Model):
         return data
 
     def save(self, *args, **kwargs):
+        if self.pk is None:
+            self.firstSeen = timezone.now()
         if self.logs is not None:
-            from django.utils import timezone
             minutes = len(self.logs if self.logs else {}) * 5
             self.duration = timezone.timedelta(minutes=minutes)
         super().save(*args, **kwargs)

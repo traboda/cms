@@ -1,3 +1,4 @@
+from django.db.models import Sum, Avg
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views import View
@@ -5,12 +6,14 @@ from django.views import View
 from api.utils.decorator import verify_API_key
 from attendance.models import AttendanceDateLog
 
+DEFAULT_DATE = timezone.datetime(2022, 11, 27, tzinfo=timezone.get_current_timezone())
+
 
 def get_latest_date(offsetDays: int, dateJoined):
     offsetDate = timezone.now().astimezone(timezone.get_current_timezone()) - timezone.timedelta(days=offsetDays)
     if offsetDate.date() < dateJoined:
-        return dateJoined
-    return offsetDate.date()
+        return (timezone.now().astimezone(timezone.get_current_timezone()).date() - dateJoined).total_seconds() / 86400
+    return offsetDays
 
 
 class AttendanceProfileAPI(View):
@@ -24,7 +27,7 @@ class AttendanceProfileAPI(View):
         except Member.DoesNotExist:
             return JsonResponse({'error': 'Member does not exist.'}, status=404)
 
-        dateJoined = member.dateJoined
+        dateJoined = member.joinDate if member.joinDate else DEFAULT_DATE
 
         data = {}
         data['member'] = {
@@ -41,28 +44,40 @@ class AttendanceProfileAPI(View):
         presenceLast7Days = AttendanceDateLog.objects.filter(
             member=member,
             date__gte=(now - timezone.timedelta(days=6)).date()
-        ).count()
+        )
         presenceLast30Days = AttendanceDateLog.objects.filter(
             member=member,
-            date__gte=(now - timezone.timedelta(days=39)).date()
-        ).count()
+            date__gte=(now - timezone.timedelta(days=30-1)).date()
+        )
         presenceLast6Months = AttendanceDateLog.objects.filter(
             member=member,
             date__gte=(now - timezone.timedelta(days=(30 * 6)-1)).date()
-        ).count()
+        )
 
+        presenceLast6MonthsCount = presenceLast6Months.count()
+        presenceLast30DaysCount = presenceLast30Days.count()
+        presenceLast7DaysCount = presenceLast7Days.count()
+        last7DaysAvg = presenceLast7Days.aggregate(avg=Avg('duration'))['avg'] or timezone.timedelta(seconds=0)
+        last30DaysAvg = presenceLast30Days.aggregate(avg=Avg('duration'))['avg'] or timezone.timedelta(seconds=0)
+        last6MonthsAvg = presenceLast6Months.aggregate(avg=Avg('duration'))['avg'] or timezone.timedelta(seconds=0)
         data['stats'] = {
             'presence': {
-               'last7Days': presenceLast7Days,
-               'last30Days': presenceLast30Days,
-               'last6Months': presenceLast6Months,
+               'last7Days': presenceLast7DaysCount,
+               'last30Days': presenceLast30DaysCount,
+               'last6Months': presenceLast6MonthsCount,
             },
             'absence': {
-                'last7Days': get_latest_date(7, dateJoined) - presenceLast7Days,
-                'last30Days': get_latest_date(30, dateJoined) - presenceLast30Days,
-                'last6Months': get_latest_date((30 * 6)-1, dateJoined) - presenceLast6Months,
+                'last7Days': get_latest_date(7, dateJoined) - presenceLast7DaysCount,
+                'last30Days': get_latest_date(30, dateJoined) - presenceLast30DaysCount,
+                'last6Months': get_latest_date((30 * 6)-1, dateJoined) - presenceLast6MonthsCount,
+            },
+            'avgDuration': {
+                'last7Days': last7DaysAvg.total_seconds() // 60,
+                'last30Days': last30DaysAvg.total_seconds() // 60,
+                'last6Months': last6MonthsAvg.total_seconds() // 60,
             }
         }
+
 
         data['thisWeek'] = {
             'range': {
