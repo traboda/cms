@@ -2,7 +2,7 @@ asgiref==3.5.2
 boto3==1.24.74
 backports.zoneinfo==0.2.1
 environs==9.5.0
-Django==4.0.9
+Django==4.1.9
 django-cors-headers==3.13.0
 django-storages==1.13.1
 huey==2.4.3
