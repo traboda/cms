@@ -44,5 +44,11 @@ COPY --from=builder /cms /cms
 WORKDIR /cms
 RUN /bin/bash -c "source /venv/bin/activate"
 
-EXPOSE 8000
-CMD gunicorn --timeout 120 --workers=5 -b 0.0.0.0:8000 --log-level=error cms.wsgi
+ENV WEB_CONCURRENCY 5
+ENV PORT 8000
+ENV MAX_REQUESTS 1000
+ENV MAX_REQUESTS_JITTER 50
+ENV TIMEOUT 30
+EXPOSE $PORT
+
+CMD gunicorn --timeout $TIMEOUT --max-requests $MAX_REQUESTS --max-requests-jitter $MAX_REQUESTS_JITTER --workers $WEB_CONCURRENCY -b [::]:$PORT --log-level=error cms.wsgi
